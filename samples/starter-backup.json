@@ -1,0 +1,216 @@
+{
+  "format": "family-tracker-backup",
+  "version": 1,
+  "exportedAt": "2026-11-16T06:00:00-06:00",
+  "source": "Sample starter data",
+  "docs": {
+    "vehicles/sample-civic": {
+      "status": "active",
+      "order": 1,
+      "year": 2018,
+      "make": "Honda",
+      "model": "Civic",
+      "trim": "EX",
+      "type": "ICE",
+      "vin": "SAMPLE00000000000",
+      "plate": "ABC 1234",
+      "regDue": "2027-03",
+      "mileage": 68500,
+      "milesPerYear": 12000,
+      "oilTracked": true,
+      "lastOil": "2026-05-20",
+      "lastOilMiles": 63200,
+      "oilIntervalMonths": 6,
+      "oilIntervalMiles": 7500,
+      "nextOil": "",
+      "battery": "2024-10-01",
+      "tireSize": "215/55R16",
+      "tiresReplacedDate": "2025-04-12",
+      "tiresReplacedMiles": 55000,
+      "tiresRotatedMiles": 63200,
+      "purchaseDate": "2021-06-15",
+      "purchasePrice": 17500,
+      "endLoan": "",
+      "driver": "Sample Driver",
+      "insuranceCarrier": "Example Insurance",
+      "insurancePolicy": "POLICY-0000",
+      "insuranceExpires": "2027-01-15",
+      "notes": "Sample vehicle - edit or delete it once you've added your own.",
+      "createdAt": "2026-11-16T12:00:00Z"
+    },
+    "vehicles/sample-civic/service/s1": {
+      "date": "2025-04-12",
+      "mileage": 55000,
+      "category": "Tires replaced",
+      "title": "4 new tires, alignment",
+      "shop": "Local Tire Shop",
+      "details": "215/55R16 all-season",
+      "payType": "Receipt",
+      "createdAt": "2026-11-16T12:00:00Z"
+    },
+    "vehicles/sample-civic/service/s2": {
+      "date": "2025-11-18",
+      "mileage": 59100,
+      "category": "Oil change",
+      "title": "Oil & filter, 0W-20 synthetic",
+      "shop": "DIY",
+      "details": "",
+      "payType": "",
+      "createdAt": "2026-11-16T12:00:00Z"
+    },
+    "vehicles/sample-civic/service/s3": {
+      "date": "2026-05-20",
+      "mileage": 63200,
+      "category": "Oil change",
+      "title": "Oil & filter, tire rotation",
+      "shop": "DIY",
+      "details": "Cabin air filter replaced too",
+      "payType": "",
+      "createdAt": "2026-11-16T12:00:00Z"
+    },
+    "parts/civic-oil-filter": {
+      "kind": "Part",
+      "category": "Oil filter",
+      "name": "Oil filter",
+      "brand": "Honda",
+      "partNumber": "15400-PLM-A02",
+      "altNumbers": "",
+      "fits": [
+        "sample-civic"
+      ],
+      "qty": 2,
+      "minQty": 1,
+      "unit": "ea",
+      "location": "Garage shelf A",
+      "vendor": "",
+      "price": "",
+      "url": "",
+      "notes": "Sample part",
+      "createdAt": "2026-11-16T12:00:00Z",
+      "updatedAt": "2026-11-16T12:00:00Z"
+    },
+    "parts/civic-oil": {
+      "kind": "Fluid",
+      "category": "Engine oil",
+      "name": "0W-20 full synthetic",
+      "brand": "",
+      "partNumber": "",
+      "altNumbers": "",
+      "fits": [
+        "sample-civic"
+      ],
+      "qty": 3,
+      "minQty": 5,
+      "unit": "qt",
+      "location": "Garage shelf A",
+      "vendor": "",
+      "price": "",
+      "url": "",
+      "notes": "Below minimum - shows up as low stock",
+      "createdAt": "2026-11-16T12:00:00Z",
+      "updatedAt": "2026-11-16T12:00:00Z"
+    },
+    "equipment/furnace": {
+      "name": "Furnace",
+      "area": "HVAC",
+      "brand": "Example Brand",
+      "model": "MODEL-123",
+      "serial": "",
+      "specs": "80k BTU, 96% AFUE",
+      "installDate": "2019-09",
+      "warrantyEnds": "2029-09",
+      "filterSize": "16x25x1",
+      "location": "Basement",
+      "installer": "",
+      "notes": ""
+    },
+    "home/hvac-filter": {
+      "name": "Replace furnace filter",
+      "area": "HVAC",
+      "intervalMonths": 3,
+      "equipmentId": "furnace",
+      "howTo": "Arrow on the filter points toward the blower.",
+      "status": "active",
+      "lastDone": "2026-08-20",
+      "nextDue": "",
+      "notes": "",
+      "createdAt": "2026-11-16T12:00:00Z"
+    },
+    "home/hvac-filter/log/l1": {
+      "date": "2026-08-20",
+      "note": "",
+      "who": "",
+      "createdAt": "2026-11-16T12:00:00Z"
+    },
+    "home/smoke-detectors": {
+      "name": "Test smoke & CO detectors",
+      "area": "Safety",
+      "intervalMonths": 6,
+      "equipmentId": "",
+      "howTo": "Press test on each unit; replace batteries yearly.",
+      "status": "active",
+      "lastDone": "2026-04-01",
+      "nextDue": "",
+      "notes": "",
+      "createdAt": "2026-11-16T12:00:00Z"
+    },
+    "checklists/fall-car": {
+      "name": "Get the Civic ready for winter",
+      "season": "Fall",
+      "startMonth": 10,
+      "dueMonth": 11,
+      "vehicleId": "sample-civic",
+      "notes": "",
+      "completedAt": "",
+      "items": [
+        {
+          "id": "i1",
+          "text": "Check tire tread and pressure",
+          "doneAt": ""
+        },
+        {
+          "id": "i2",
+          "text": "Test the battery",
+          "doneAt": ""
+        },
+        {
+          "id": "i3",
+          "text": "Install winter wiper blades, top off washer fluid",
+          "doneAt": ""
+        },
+        {
+          "id": "i4",
+          "text": "Put an ice scraper and blanket in the trunk",
+          "doneAt": ""
+        }
+      ]
+    },
+    "checklists/spring-yard": {
+      "name": "Spring yard & house",
+      "season": "Spring",
+      "startMonth": 3,
+      "dueMonth": 4,
+      "vehicleId": "",
+      "notes": "",
+      "completedAt": "",
+      "items": [
+        {
+          "id": "i1",
+          "text": "Clean gutters and downspouts",
+          "doneAt": ""
+        },
+        {
+          "id": "i2",
+          "text": "Turn on outdoor water and check hose bibs",
+          "doneAt": ""
+        },
+        {
+          "id": "i3",
+          "text": "Service the lawn mower",
+          "doneAt": ""
+        }
+      ]
+    }
+  },
+  "blobs": {}
+}
