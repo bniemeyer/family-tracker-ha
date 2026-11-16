@@ -1,0 +1,16 @@
+configuration:
+  notify_service:
+    name: Notify service
+    description: "Optional. The notify service to send reminders to, without the 'notify.' prefix (e.g. mobile_app_brads_phone)."
+  persistent_notification:
+    name: Persistent notification
+    description: Also post reminders as a notification in the Home Assistant sidebar.
+  reminder_time:
+    name: Daily check time
+    description: "Local time (24h, HH:MM) to check for due items each day."
+  due_window_days:
+    name: Due window (days)
+    description: Remind when a date-based item is due within this many days, or overdue.
+  repeat_days:
+    name: Repeat every (days)
+    description: Re-send a reminder for the same item after this many days until it's updated.

@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Niemeyer Family Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f1ec; --panel:#ffffff; --panel2:#f8f7f3; --ink:#1d1f22; --ink2:#5b6068; --ink3:#8a9099;
+  --line:#e2dfd7; --accent:#d9480f; --accent-ink:#fff;
+  --ok:#2f7d4f; --ok-bg:#e3f2e8; --soon:#a86400; --soon-bg:#fff1d6; --bad:#c22a2a; --bad-bg:#fde4e2; --na:#6b7078; --na-bg:#eceae5;
+  --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#141517;--panel:#1d1f22;--panel2:#24272b;--ink:#eceae5;--ink2:#a8adb5;--ink3:#7a8089;--line:#2f3237;
+  --ok:#5cc489;--ok-bg:#183326;--soon:#f0b44c;--soon-bg:#3a2c12;--bad:#ff7a70;--bad-bg:#3d1b19;--na:#9aa0a8;--na-bg:#2a2d31;--shadow:none}
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Barlow,system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 18px 60px}
+h1,h2,h3{font-family:"Barlow Condensed",sans-serif;letter-spacing:.01em;margin:0}
+.mono{font-family:"JetBrains Mono",monospace;font-size:.9em}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.top h1{font-size:34px;font-weight:700;text-transform:uppercase}
+.top h1 span{color:var(--accent)}
+.sync{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ink3)}
+.dot.ok{background:var(--ok)}.dot.busy{background:var(--soon)}.dot.bad{background:var(--bad)}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:7px 12px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--ink3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.small{padding:4px 9px;font-size:13px}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:default}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+.stat .n{font-family:"Barlow Condensed";font-size:38px;font-weight:700;line-height:1}
+.stat .l{color:var(--ink2);font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+.stat.bad .n{color:var(--bad)}.stat.soon .n{color:var(--soon)}.stat.ok .n{color:var(--ok)}
+.upcoming{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:6px 0;margin-bottom:26px;box-shadow:var(--shadow)}
+.upcoming .row{display:flex;align-items:center;gap:12px;padding:9px 16px;cursor:pointer}
+.upcoming .row+.row{border-top:1px solid var(--line)}
+.upcoming .row:hover{background:var(--panel2)}
+.upcoming .what{flex:1;min-width:0}
+.upcoming .what b{font-weight:600}
+.upcoming .empty{padding:12px 16px;color:var(--ink2)}
+.sechead{display:flex;align-items:center;justify-content:space-between;margin:0 0 12px}
+.sechead h2{font-size:22px;text-transform:uppercase}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;cursor:pointer;box-shadow:var(--shadow);display:flex;flex-direction:column;transition:transform .12s}
+.card:hover{transform:translateY(-2px);border-color:var(--ink3)}
+.ph{aspect-ratio:16/9;background:var(--panel2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph svg{width:38%;height:auto;opacity:.35}
+.ph .plate{position:absolute;right:8px;bottom:8px;background:rgba(255,255,255,.92);color:#111;border:1px solid #bbb;border-radius:5px;padding:1px 7px;font:500 12px "JetBrains Mono",monospace}
+.cb{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px;flex:1}
+.cb h3{font-size:21px;line-height:1.1}
+.cb .sub{color:var(--ink2);font-size:13px}
+.badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto}
+.badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 9px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.badge.ok{background:var(--ok-bg);color:var(--ok)}.badge.soon{background:var(--soon-bg);color:var(--soon)}.badge.bad{background:var(--bad-bg);color:var(--bad)}.badge.na{background:var(--na-bg);color:var(--na)}
+details.gone{margin-top:30px}
+details.gone summary{cursor:pointer;font-family:"Barlow Condensed";font-size:20px;text-transform:uppercase;color:var(--ink2);list-style:none;display:flex;align-items:center;gap:8px}
+details.gone summary::before{content:"▸";transition:transform .15s}
+details.gone[open] summary::before{transform:rotate(90deg)}
+details.gone .grid{margin-top:12px}
+.card.isgone{opacity:.75}
+.note{color:var(--ink2);font-size:13px}
+.banner{background:var(--soon-bg);color:var(--soon);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:14px}
+.banner.bad{background:var(--bad-bg);color:var(--bad)}
+/* detail */
+.back{display:inline-flex;align-items:center;gap:6px;margin-bottom:14px}
+.hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;margin-bottom:18px}
+@media (max-width:820px){.hero{grid-template-columns:1fr}.summary{grid-template-columns:repeat(3,1fr)}}
+.hero .ph{border-radius:var(--radius);border:1px solid var(--line)}
+.phactions{position:absolute;left:10px;bottom:10px;display:flex;gap:6px;align-items:center}
+.pastehint{font-size:12px;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;padding:3px 7px}
+.ph.drop{outline:3px dashed var(--accent);outline-offset:-6px}
+.hinfo{display:flex;flex-direction:column;gap:12px}
+.hinfo h1{font-size:40px;line-height:1;text-transform:uppercase}
+.hinfo .sub{color:var(--ink2)}
+.statusgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.st{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.st .k{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink2)}
+.st .v{font-weight:600;margin-top:2px}
+.st .badge{margin-top:6px}
+.panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+.panel h2{font-size:18px;text-transform:uppercase;margin-bottom:10px;color:var(--ink2)}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:7px 12px;align-items:center}
+.kv .k{color:var(--ink2);font-size:13.5px}
+.kv .v{min-width:0;overflow-wrap:anywhere}
+.kv input,.kv select,.form input,.form select,.form textarea{width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+.kv input:focus,.form input:focus,.form textarea:focus,.form select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.hint{font-size:12px;color:var(--ink3)}
+.editbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.log{display:flex;flex-direction:column}
+.entry{display:grid;grid-template-columns:110px 1fr auto;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.entry:first-child{border-top:0}
+.entry .d{font-weight:600}
+.entry .m{color:var(--ink2);font-size:13px}
+.entry .t{font-weight:600}
+.entry .x{color:var(--ink2);font-size:13.5px;white-space:pre-wrap}
+.cat{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);font-weight:600}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;padding:12px;background:var(--panel2);border-radius:12px;margin-bottom:12px}
+.form .full{grid-column:1/-1}
+.form label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink2)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal .box{background:var(--panel);border-radius:var(--radius);padding:18px;max-width:560px;width:100%;max-height:90vh;overflow:auto}
+.modal h2{margin-bottom:12px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:10px;font-size:14px;z-index:20;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+.loading{padding:40px;text-align:center;color:var(--ink2)}
+/* tracker shell */
+.brand{display:flex;flex-direction:column;gap:10px}
+.nav{display:flex;gap:4px;flex-wrap:wrap}
+.nav a{padding:6px 13px;border-radius:999px;text-decoration:none;color:var(--ink2);font-weight:600;font-size:14px;border:1px solid transparent}
+.nav a:hover{border-color:var(--line);color:var(--ink)}
+.nav a.on{background:var(--ink);color:var(--bg)}
+.nav a .cnt{display:inline-block;min-width:18px;margin-left:5px;padding:0 5px;border-radius:9px;background:var(--bad);color:#fff;font-size:11.5px;text-align:center}
+.nav a .cnt.soon{background:var(--soon)}
+.summary.four{grid-template-columns:repeat(4,1fr)}
+@media (max-width:820px){.summary.four{grid-template-columns:repeat(2,1fr)}}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);cursor:pointer;text-decoration:none;color:inherit;display:flex;flex-direction:column;gap:6px}
+.tile:hover{border-color:var(--ink3)}
+.tile h3{font-size:22px;text-transform:uppercase}
+.tile .big{font-family:"Barlow Condensed";font-size:30px;font-weight:700;line-height:1}
+.subnav{display:flex;gap:6px;margin:-4px 0 16px}
+.subnav a{color:var(--ink)}.subnav a.primary{color:var(--accent-ink)}
+a{color:var(--accent)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.toolbar input,.toolbar select{padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.toolbar input[type=search]{flex:1;min-width:180px}
+.tablewrap{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow-x:auto;box-shadow:var(--shadow)}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t th{text-align:left;font-weight:600;color:var(--ink2);font-size:12px;text-transform:uppercase;letter-spacing:.05em;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.t td{padding:9px 12px;border-top:1px solid var(--line);vertical-align:middle}
+table.t tr:first-child td{border-top:0}
+table.t tr.low td{background:var(--soon-bg)}
+table.t tr.clk{cursor:pointer}
+table.t tr.clk:hover td{background:var(--panel2)}
+.qty{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.qty b{min-width:26px;text-align:center}
+.qty .btn{padding:1px 8px}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:12px;background:var(--na-bg);color:var(--ink2);border-radius:999px;padding:1px 8px;white-space:nowrap}
+.checkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 12px;max-height:200px;overflow:auto;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+.checkgrid label{flex-direction:row!important;align-items:center;gap:6px!important;color:var(--ink)!important}
+.checkgrid input{width:auto!important}
+.cl{list-style:none;margin:0;padding:0}
+.cl li{display:flex;align-items:flex-start;gap:10px;padding:9px 2px;border-top:1px solid var(--line)}
+.cl li:first-child{border-top:0}
+.cl li input[type=checkbox]{width:19px;height:19px;margin-top:1px;accent-color:var(--accent);flex:none;cursor:pointer}
+.cl li .tx{flex:1}
+.cl li.done .tx{color:var(--ink3);text-decoration:line-through}
+.cl li .when{font-size:12px;color:var(--ink3);white-space:nowrap}
+.bar{height:6px;border-radius:3px;background:var(--na-bg);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.rowlist{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.rowlist .r{display:flex;align-items:center;gap:12px;padding:11px 16px;border-top:1px solid var(--line);cursor:pointer}
+.rowlist .r:first-child{border-top:0}
+.rowlist .r:hover{background:var(--panel2)}
+.rowlist .r .what{flex:1;min-width:0}
+.rowlist .r .what b{font-weight:600}
+.rowlist .r .what .note{display:block}
+.seclabel{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin:22px 0 8px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="loading">Loading…</div></div>
+<div class="toast" id="toast"></div>
+<script>
+/* Home Assistant app runtime: stands in for the claude.use() capabilities the page was written against. */
+(function(){
+  const enc=encodeURIComponent;
+  async function req(method,url,body,type){
+    const opt={method,headers:{}};
+    if(body!==undefined){ if(body instanceof Blob){opt.body=body;opt.headers["Content-Type"]=type||body.type||"application/octet-stream"} else {opt.body=JSON.stringify(body);opt.headers["Content-Type"]="application/json"} }
+    const r=await fetch(url,opt); let j=null; try{ j=await r.json() }catch{}
+    if(!r.ok){ const e=new Error((j&&j.error)||("HTTP "+r.status)); e.code=(j&&j.error)||("http_"+r.status); throw e }
+    return j;
+  }
+  const listeners=new Set();
+  function snapCol(docs,order){
+    let d=docs.map(x=>({id:x.id,data:()=>x.data}));
+    if(order){ const [f,dir]=order; d.sort((a,b)=>{const A=a.data()[f]??"",B=b.data()[f]??"";return (A<B?-1:A>B?1:0)*(dir==="desc"?-1:1)}) }
+    return {docs:d,metadata:{fromCache:false}};
+  }
+  async function run(l){
+    try{
+      if(l.kind==="col"){ const r=await req("GET","api/col?path="+enc(l.path)); if(l.alive) l.cb(snapCol(r.docs,l.order)) }
+      else { const r=await req("GET","api/doc?path="+enc(l.path)); if(l.alive) l.cb({exists:r.exists,data:()=>r.data}) }
+    }catch(e){ if(l.alive&&l.err) l.err(e) }
+  }
+  function listen(kind,path,cb,err,order){ const l={kind,path,cb,err,order,alive:true}; listeners.add(l); run(l); return ()=>{l.alive=false;listeners.delete(l)} }
+  function matches(l,p){ if(p==="*") return true; if(l.kind==="doc") return p===l.path||l.path.startsWith(p+"/"); const parent=p.split("/").slice(0,-1).join("/"); return parent===l.path||l.path.startsWith(p+"/") }
+  let seq=-1, online=true;
+  async function poll(){
+    for(;;){
+      try{
+        const r=await req("GET","api/changes?since="+seq+(seq<0?"&wait=0":""));
+        if(!online){ online=true; listeners.forEach(run) }
+        if(seq>=0){ if(r.paths===null) listeners.forEach(run); else if(r.paths.length) listeners.forEach(l=>{ if(r.paths.some(p=>matches(l,p))) run(l) }) }
+        seq=r.seq;
+      }catch(e){ online=false; await new Promise(r=>setTimeout(r,3000)) }
+    }
+  }
+  const db={
+    doc:p=>({
+      set:d=>req("PUT","api/doc?path="+enc(p),d),
+      delete:()=>req("DELETE","api/doc?path="+enc(p)),
+      get:async()=>{const r=await req("GET","api/doc?path="+enc(p));return {exists:r.exists,data:()=>r.data}},
+      onSnapshot:(cb,err)=>listen("doc",p,cb,err)
+    }),
+    collection:p=>({
+      add:d=>req("POST","api/col?path="+enc(p),d),
+      orderBy:(f,dir)=>({onSnapshot:(cb,err)=>listen("col",p,cb,err,[f,dir||"asc"])}),
+      onSnapshot:(cb,err)=>listen("col",p,cb,err)
+    })
+  };
+  const assets={ upload:async(blob,o)=>{ const r=await req("POST","api/blob",blob,(o&&o.type)||blob.type); return {id:r.id} }, delete:id=>req("DELETE","api/blob/"+enc(id)) };
+  poll();
+  window.FT={req};
+  window.claude={ use: async n=> n==="db"?db : n==="assets"?assets : n==="user"?{can:async()=>true} : null };
+})();
+</script>
+<script>
+const SHEET_ID = ""; // Google Sheet sync is not used in the Home Assistant app
+const SHEET_TAB = "Vehicle Sheet";
+const SOON_DAYS = 60;
+const HEADER = ["Year","Make","Model","Trim","Type","VIN","License Plate","Registration Due","Last Oil Change","Next Oil Change","12v Battery Replace","Tire Size","Tires Replaced date","Tires replace mileage","Tires rotated miles","Miles per year est","mileage","purchase date","end loan","Primary Driver","Insurance","Purchase Price"];
+const TYPES = ["ICE","EV","Hybrid","Trailer","Watercraft","UTV","Mower","Motorcycle","Other"];
+const CATS = ["Oil change","Tires replaced","Tire rotation","12V battery","Registration renewal","Repair","Recall / FSA","Inspection","Other"];
+
+let db=null, mcp=null, assets=null, canWrite=true;
+let vehicles=[], meta=null, loaded=false, loadErr=null, staleNote=false;
+let route={view:"home"}, editing=false, serviceUnsub=null, serviceList=[], serviceLoaded=false, showAddService=false;
+let syncState={status:"idle",at:null,msg:""}, syncTimer=null, syncRunning=false, syncPending=false;
+let parts=[], homeTasks=[], equipment=[], checklists=[];
+let logUnsub=null, logList=[], logLoaded=false, showAddLog=false;
+let pf={q:"",veh:"",kind:"",low:false};
+const HOME_SOON=30, SEASON_GRACE=60;
+const PART_KINDS=["Part","Fluid","Tool"];
+const PART_CATS=["Oil filter","Engine oil","Air filter","Cabin filter","Fuel filter","Spark plugs","Belt","Blades","Battery","Brake parts","Bulbs","Wipers","Gear lube","Coolant","Grease","Tire / wheel","Hardware","Tool","Other"];
+const HOME_AREAS=["HVAC","Plumbing","Electrical","Safety","Appliances","Exterior","Yard","Other"];
+const SEASONS=["Fall","Winter","Spring","Summer"];
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const isFull=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||"");
+const isMonth=v=>/^\d{4}-\d{2}$/.test(v||"");
+const isDate=v=>isFull(v)||isMonth(v);
+const pad=n=>String(n).padStart(2,"0");
+function toDate(v){ if(isFull(v)){const [y,m,d]=v.split("-").map(Number);return new Date(y,m-1,d)} if(isMonth(v)){const [y,m]=v.split("-").map(Number);return new Date(y,m-1,1)} return null }
+function dueDate(v){ if(isMonth(v)){const [y,m]=v.split("-").map(Number);return new Date(y,m,0)} return toDate(v) }
+function fmt(v){ if(isFull(v)){const d=toDate(v);return `${MON[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`} if(isMonth(v)){const d=toDate(v);return `${MON[d.getMonth()]} ${d.getFullYear()}`} return v||"" }
+function toInput(v){ if(isFull(v)){const [y,m,d]=v.split("-");return `${m}/${d}/${y}`} if(isMonth(v)){const [y,m]=v.split("-");return `${m}/${y}`} return v||"" }
+function toSheet(v){ if(isFull(v)){const [y,m,d]=v.split("-").map(Number);return `${m}/${d}/${y}`} if(isMonth(v)){const [y,m]=v.split("-").map(Number);return `${m}/1/${y}`} return v??"" }
+function parseDateInput(s){
+  s=String(s||"").trim(); if(!s) return "";
+  let m;
+  if(m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)) return `${m[1]}-${pad(m[2])}-${pad(m[3])}`;
+  if(m=s.match(/^(\d{4})-(\d{1,2})$/)) return `${m[1]}-${pad(m[2])}`;
+  if(m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2}|\d{4})$/)){let y=+m[3];if(y<100)y+=2000;if(+m[1]>=1&&+m[1]<=12&&+m[2]>=1&&+m[2]<=31)return `${y}-${pad(m[1])}-${pad(m[2])}`}
+  if(m=s.match(/^(\d{1,2})[\/\-](\d{4}|\d{2})$/)){let y=+m[2];if(y<100)y+=2000;if(+m[1]>=1&&+m[1]<=12)return `${y}-${pad(m[1])}`}
+  return s;
+}
+function parseNum(s){ s=String(s??"").trim().replace(/^\$/,""); if(!s) return ""; const n=Number(s.replace(/,/g,"")); return isFinite(n)&&/^[\d,.\s]+$/.test(s)?n:s }
+const fmtNum=v=>typeof v==="number"?v.toLocaleString():(v||"");
+function addMonths(v,n){ const d=toDate(v); if(!d) return ""; const t=new Date(d.getFullYear(),d.getMonth()+n,1); if(isMonth(v)) return `${t.getFullYear()}-${pad(t.getMonth()+1)}`; const last=new Date(t.getFullYear(),t.getMonth()+1,0).getDate(); return `${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(Math.min(d.getDate(),last))}` }
+function todayISO(){const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
+function daysUntil(d){ const t=new Date();t.setHours(0,0,0,0); return Math.round((d-t)/864e5) }
+function rel(days){ if(days===0) return "today"; if(days<0){const a=-days;return a<60?`${a}d overdue`:`${Math.round(a/30)} mo overdue`} return days<60?`in ${days}d`:`in ${Math.round(days/30)} mo` }
+const unitOf=v=>v.usageUnit||(["UTV","Mower","Watercraft"].includes(v.type)?"hrs":"mi");
+const unitNoun=v=>unitOf(v)==="hrs"?"Hours":"Miles";
+const unitCur=v=>unitOf(v)==="hrs"?"hours":"mileage";
+const withUnit=(n,v)=>`${n.toLocaleString()} ${unitOf(v)}`;
+const vname=v=>[v.year,v.make,v.model].filter(Boolean).join(" ");
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("on");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("on"),2600)}
+
+/* ---------- status logic ---------- */
+function regStatus(v){
+  const r=v.regDue;
+  if(!r||/^na$/i.test(r)) return {key:"na",label:"No registration",short:"—",applies:false};
+  if(!isDate(r)) return {key:"na",label:`Registration: ${r}`,short:r,applies:true};
+  const d=dueDate(r), days=daysUntil(d);
+  const key=days<0?"bad":days<=SOON_DAYS?"soon":"ok";
+  return {key,label:`Reg ${fmt(r)}`,short:fmt(r),days,date:d,applies:true,rel:rel(days)};
+}
+function nextOil(v){
+  if(v.oilIntervalMonths>0 && isDate(v.lastOil)) return addMonths(v.lastOil,v.oilIntervalMonths);
+  return v.nextOil||"";
+}
+function oilStatus(v){
+  if(!v.oilTracked) return {key:"na",applies:false};
+  const n=nextOil(v);
+  let days=null, date=null, milesLeft=null, nextMiles=null;
+  if(isDate(n)){date=dueDate(n);days=daysUntil(date)}
+  if(v.oilIntervalMiles>0 && typeof v.lastOilMiles==="number"){nextMiles=v.lastOilMiles+v.oilIntervalMiles; if(typeof v.mileage==="number") milesLeft=nextMiles-v.mileage}
+  if(days===null && milesLeft===null) return {key:"na",label:"Oil: unknown",short:n||"unknown",applies:true};
+  const isHrs=unitOf(v)==="hrs";
+  const milesSoon=isHrs?Math.max(5,(v.oilIntervalMiles||0)*.1):(v.oilIntervalMiles?Math.max(500,v.oilIntervalMiles*.1):500);
+  let key="ok";
+  if((days!==null&&days<0)||(milesLeft!==null&&milesLeft<=0)) key="bad";
+  else if((days!==null&&days<=SOON_DAYS)||(milesLeft!==null&&milesLeft<=milesSoon)) key="soon";
+  const parts=[]; if(date) parts.push(fmt(n)); if(nextMiles) parts.push(withUnit(nextMiles,v));
+  return {key,label:`Oil ${parts.join(" / ")}`,short:parts.join(" or "),days,date,milesLeft,nextMiles,next:n,applies:true,rel:days!==null?rel(days):(milesLeft<=0?`${withUnit(-milesLeft,v)} over`:`${withUnit(milesLeft,v)} left`)};
+}
+const ICON={
+ car:'<svg viewBox="0 0 64 40" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 28v-7l6-10h28l10 10h6v7"/><circle cx="17" cy="30" r="5"/><circle cx="47" cy="30" r="5"/><path d="M22 30h20M2 28h4"/></svg>',
+ trailer:'<svg viewBox="0 0 64 40" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 26h44V12H4zM48 22h12"/><circle cx="20" cy="30" r="5"/><circle cx="32" cy="30" r="5"/></svg>',
+ boat:'<svg viewBox="0 0 64 40" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 22h56l-8 10H12z"/><path d="M18 22l6-10h14l6 10"/><path d="M2 36c6 0 6-2 12-2s6 2 12 2 6-2 12-2 6 2 12 2 6-2 12-2"/></svg>',
+ utv:'<svg viewBox="0 0 64 40" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 26l4-14h22l4 8h14l4 6"/><path d="M14 12l4-6h14"/><circle cx="16" cy="29" r="6"/><circle cx="48" cy="29" r="6"/></svg>',
+ mower:'<svg viewBox="0 0 64 40" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 26h40l4-8H30l-4-8h-8l-2 8h-6z"/><circle cx="16" cy="30" r="5"/><circle cx="46" cy="30" r="4"/></svg>'
+};
+function iconFor(t){t=(t||"").toLowerCase(); if(t.includes("trailer"))return ICON.trailer; if(t.includes("water")||t.includes("boat"))return ICON.boat; if(t.includes("utv"))return ICON.utv; if(t.includes("mower"))return ICON.mower; return ICON.car}
+const photoHTML=v=>v.photoId?`<img src="_blob/${esc(v.photoId)}" alt="${esc(vname(v))}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{innerHTML:iconFor('${esc(v.type)}')}))">`:iconFor(v.type);
+
+/* ---------- render ---------- */
+function render(){
+  const app=$("#app");
+  if(!loaded){ app.innerHTML=`<div class="loading">${loadErr?esc(loadErr):staleNote?"Still trying to reach your tracker data…":"Loading…"}</div>`; return; }
+  if(route.view==="vehicle"){ const v=vehicles.find(x=>x.id===route.id); if(v) return renderDetail(v); }
+  if(route.view==="task"){ const t=homeTasks.find(x=>x.id===route.id); if(t) return renderTask(t); }
+  if(route.view==="list"){ const c=checklists.find(x=>x.id===route.id); if(c) return renderList(c); }
+  if(route.view==="garage") return renderHome();
+  if(route.view==="parts") return renderParts();
+  if(route.view==="home") return renderHomeTab();
+  if(route.view==="seasonal") return renderSeasonal();
+  if(route.view==="settings") return renderSettings();
+  if(["vehicle","task","list"].includes(route.view)){ $("#app").innerHTML=`${topHTML("")}<div class="note">That item isn't here anymore. <a href="#">Back to overview</a></div>`; return }
+  renderOverview();
+}
+/* ---------- tracker-wide status ---------- */
+function taskNext(t){ if(t.intervalMonths>0 && isDate(t.lastDone)) return addMonths(t.lastDone,t.intervalMonths); return isDate(t.nextDue)?t.nextDue:"" }
+function taskStatus(t){
+  const n=taskNext(t);
+  if(!isDate(n)) return {key:"na",short:isDate(t.lastDone)?"No interval set":"Not logged yet",applies:true,rel:""};
+  const days=daysUntil(dueDate(n));
+  return {key:days<0?"bad":days<=HOME_SOON?"soon":"ok",short:fmt(n),days,next:n,applies:true,rel:rel(days)};
+}
+function listCycle(c){
+  const now=new Date(); now.setHours(0,0,0,0);
+  const s=+c.startMonth||1, d=+c.dueMonth||s;
+  let ws=new Date(now.getFullYear(),s-1,1); if(ws>now) ws=new Date(now.getFullYear()-1,s-1,1);
+  const due=new Date(ws.getFullYear()+(d<s?1:0),d,0);
+  const nextWs=new Date(ws.getFullYear()+1,s-1,1);
+  return {ws,due,nextWs};
+}
+const itemDone=(it,cy)=>!!(it.doneAt&&isDate(it.doneAt)&&toDate(it.doneAt)>=cy.ws);
+function listStatus(c){
+  const cy=listCycle(c), items=c.items||[];
+  const nDone=items.filter(it=>itemDone(it,cy)).length;
+  const complete=(c.completedAt&&isDate(c.completedAt)&&toDate(c.completedAt)>=cy.ws)||(items.length>0&&nDone===items.length);
+  const days=daysUntil(cy.due);
+  const dueIso=`${cy.due.getFullYear()}-${pad(cy.due.getMonth()+1)}-${pad(cy.due.getDate())}`;
+  const nextLbl=`${MON[cy.nextWs.getMonth()]} ${cy.nextWs.getFullYear()}`;
+  if(complete) return {key:"ok",short:"Done for "+seasonLabel(c,cy),days,cy,nDone,total:items.length,rel:"next "+nextLbl,applies:true,complete:true};
+  if(days>=0) return {key:"soon",short:"Due by "+fmt(dueIso),days,cy,nDone,total:items.length,rel:rel(days),applies:true,open:true};
+  if(days>=-SEASON_GRACE) return {key:"bad",short:"Was due "+fmt(dueIso),days,cy,nDone,total:items.length,rel:rel(days),applies:true,open:true};
+  return {key:"na",short:"Opens "+nextLbl,days,cy,nDone,total:items.length,rel:"",applies:true,idle:true};
+}
+function seasonLabel(c,cy){ return `${c.season||""} ${cy.ws.getFullYear()}`.trim() }
+const partLow=p=>typeof p.qty==="number"&&typeof p.minQty==="number"&&p.qty<=p.minQty;
+function warrantyStatus(e){
+  if(!isDate(e.warrantyEnds)) return null;
+  const days=daysUntil(dueDate(e.warrantyEnds));
+  if(days<0) return {key:"na",short:"Warranty ended "+fmt(e.warrantyEnds),days};
+  return {key:days<=60?"soon":"ok",short:"Warranty to "+fmt(e.warrantyEnds),days,rel:rel(days)};
+}
+function allDue(){
+  const out=[];
+  for(const v of vehicles.filter(v=>v.status!=="gone")) for(const [kind,s] of [["Registration",regStatus(v)],["Oil change",oilStatus(v)]]) if(s.applies&&(s.key==="bad"||s.key==="soon")) out.push({sec:"Garage",go:"v-"+v.id,title:vname(v),what:`${kind}: ${s.short}`,s});
+  for(const t of homeTasks.filter(t=>t.status!=="archived")){ const s=taskStatus(t); if(s.key==="bad"||s.key==="soon") out.push({sec:"Home",go:"h-"+t.id,title:t.name,what:`Due ${s.short}`,s}) }
+  for(const c of checklists){ const s=listStatus(c); if(s.key==="bad"||s.key==="soon") out.push({sec:"Seasonal",go:"s-"+c.id,title:c.name,what:`${s.short} · ${s.nDone}/${s.total} done`,s}) }
+  for(const e of equipment){ const s=warrantyStatus(e); if(s&&s.key==="soon") out.push({sec:"Home",go:"home",title:e.name,what:s.short,s}) }
+  out.sort((a,b)=>(a.s.key==="bad"?0:1)-(b.s.key==="bad"?0:1)||((a.s.days??-1e9)-(b.s.days??-1e9)));
+  return out;
+}
+function topHTML(on){
+  const due=allDue();
+  const cnt=sec=>{const l=due.filter(i=>i.sec===sec); if(!l.length) return ""; return `<span class="cnt ${l.some(i=>i.s.key==="bad")?"":"soon"}">${l.length}</span>`};
+  const tab=(h,label,key,extra="")=>`<a href="#${h}" class="${on===key?"on":""}">${label}${extra}</a>`;
+  return `<div class="top"><div class="brand"><h1>Niemeyer Family <span>Tracker</span></h1>
+    <nav class="nav">${tab("","Overview","overview")}${tab("garage","Garage","garage",cnt("Garage"))}${tab("home","Home","home",cnt("Home"))}${tab("seasonal","Seasonal","seasonal",cnt("Seasonal"))}</nav></div>${syncHTML()}</div>
+  ${staleNote?`<div class="banner">Can't reach the tracker database right now. What you see may be out of date.</div>`:""}`;
+}
+function dueRowHTML(i){ return `<div class="row" data-hash="${esc(i.go)}"><span class="badge ${i.s.key}">${i.s.key==="bad"?"Overdue":"Soon"}</span><div class="what"><span class="cat">${esc(i.sec)}</span> <b>${esc(i.title)}</b> — ${esc(i.what)}</div><span class="note">${esc(i.s.rel||"")}</span></div>` }
+function renderOverview(){
+  const due=allDue(); const nBad=due.filter(i=>i.s.key==="bad").length, nSoon=due.length-nBad;
+  const lowParts=parts.filter(partLow);
+  const active=vehicles.filter(v=>v.status!=="gone");
+  const tasks=homeTasks.filter(t=>t.status!=="archived");
+  const openLists=checklists.filter(c=>listStatus(c).open);
+  const secDue=s=>due.filter(i=>i.sec===s).length;
+  $("#app").innerHTML=`${topHTML("overview")}
+  ${!vehicles.length&&!homeTasks.length&&!checklists.length?`<div class="banner">The tracker is empty. To bring over your data, open <a href="#settings">Settings</a> and import your backup file.</div>`:""}
+  <div class="summary four">
+    <div class="stat bad"><div class="n">${nBad}</div><div class="l">Overdue</div></div>
+    <div class="stat soon"><div class="n">${nSoon}</div><div class="l">Coming up</div></div>
+    <div class="stat ${lowParts.length?"soon":"ok"}"><div class="n">${lowParts.length}</div><div class="l">Parts low</div></div>
+    <div class="stat ok"><div class="n">${openLists.length}</div><div class="l">Seasonal lists open</div></div>
+  </div>
+  <div class="upcoming">${due.length?due.map(dueRowHTML).join(""):`<div class="empty">Nothing overdue or coming up. Nice.</div>`}
+    ${lowParts.length?lowParts.map(p=>`<div class="row" data-hash="parts"><span class="badge soon">Low</span><div class="what"><span class="cat">Parts</span> <b>${esc(p.name)}</b> — ${p.qty} on hand (min ${p.minQty})</div><span class="note">${esc(fitsText(p))}</span></div>`).join(""):""}</div>
+  <div class="tiles">
+    <a class="tile" href="#garage"><h3>Garage</h3><div class="big">${active.length}</div><div class="note">active vehicles${secDue("Garage")?` · ${secDue("Garage")} due`:""}</div></a>
+    <a class="tile" href="#parts"><h3>Parts &amp; tools</h3><div class="big">${parts.length}</div><div class="note">items on the shelf${lowParts.length?` · ${lowParts.length} low`:""}</div></a>
+    <a class="tile" href="#home"><h3>Home</h3><div class="big">${tasks.length}</div><div class="note">recurring tasks · ${equipment.length} systems${secDue("Home")?` · ${secDue("Home")} due`:""}</div></a>
+    <a class="tile" href="#seasonal"><h3>Seasonal</h3><div class="big">${checklists.length}</div><div class="note">checklists${openLists.length?` · ${openLists.length} in season now`:""}</div></a>
+  </div>`;
+}
+let haStat=null;
+async function refreshStatus(){ try{ haStat=await FT.req("GET","api/status") }catch{ haStat=null } updateSyncUI(); if(route.view==="settings"&&!document.querySelector(".modal")) render() }
+function syncHTML(){
+  const ok=haStat&&haStat.ha&&haStat.ha.connected;
+  const txt=!haStat?"Checking Home Assistant…":!haStat.underHA?"Running outside Home Assistant":ok?"Home Assistant connected":"Home Assistant: "+esc(haStat.ha.error||"not connected");
+  return `<div class="sync"><span class="dot ${ok?"ok":haStat?"bad":"busy"}"></span><span>${txt}</span><a class="btn small ghost" href="#settings" style="text-decoration:none">⚙ Settings</a></div>`;
+}
+function badgeHTML(s,prefix){ if(!s.applies) return ""; const tip=s.rel?` · ${s.rel}`:""; return `<span class="badge ${s.key}">${prefix} ${esc(s.short||"")}${s.key!=="ok"&&s.key!=="na"?esc(tip):""}</span>` }
+function cardHTML(v){
+  const r=regStatus(v), o=oilStatus(v);
+  return `<div class="card ${v.status==="gone"?"isgone":""}" data-go="${esc(v.id)}">
+    <div class="ph">${photoHTML(v)}${v.plate&&!/^na$/i.test(v.plate)?`<span class="plate">${esc(v.plate)}</span>`:""}</div>
+    <div class="cb"><h3>${esc(vname(v))}</h3>
+      <div class="sub">${esc([v.trim,v.type].filter(Boolean).join(" · "))}${typeof v.mileage==="number"?` · ${withUnit(v.mileage,v)}`:""}${v.driver?` · ${esc(v.driver)}`:""}</div>
+      ${v.status==="gone"?`<div class="badges"><span class="badge na">${esc(v.goneNote||"Sold / gone")}</span></div>`:`<div class="badges">${badgeHTML(r,"Reg")}${badgeHTML(o,"Oil")}</div>`}
+    </div></div>`;
+}
+function garageSubnav(on){ const low=parts.filter(partLow).length; return `<div class="subnav"><a class="btn small ${on==="vehicles"?"primary":""}" href="#garage" style="text-decoration:none">Vehicles</a><a class="btn small ${on==="parts"?"primary":""}" href="#parts" style="text-decoration:none">Parts &amp; tools${low?` · ${low} low`:""}</a></div>` }
+function renderHome(){
+  const active=vehicles.filter(v=>v.status!=="gone").sort((a,b)=>(a.order??0)-(b.order??0));
+  const gone=vehicles.filter(v=>v.status==="gone").sort((a,b)=>(a.order??0)-(b.order??0));
+  const items=[];
+  for(const v of active){ for(const [kind,s] of [["Registration",regStatus(v)],["Oil change",oilStatus(v)]]){ if(s.applies&&(s.key==="bad"||s.key==="soon")) items.push({v,kind,s}) } }
+  items.sort((a,b)=>(a.s.key==="bad"?0:1)-(b.s.key==="bad"?0:1)||((a.s.days??-1e9)-(b.s.days??-1e9)));
+  const nBad=items.filter(i=>i.s.key==="bad").length, nSoon=items.filter(i=>i.s.key==="soon").length;
+  const nOk=active.filter(v=>![regStatus(v),oilStatus(v)].some(s=>s.applies&&(s.key==="bad"||s.key==="soon"))).length;
+  $("#app").innerHTML=`${topHTML("garage")}${garageSubnav("vehicles")}
+  <div class="summary">
+    <div class="stat bad"><div class="n">${nBad}</div><div class="l">Overdue</div></div>
+    <div class="stat soon"><div class="n">${nSoon}</div><div class="l">Due in ${SOON_DAYS} days</div></div>
+    <div class="stat ok"><div class="n">${nOk}</div><div class="l">All clear</div></div>
+  </div>
+  <div class="upcoming">${items.length?items.map(i=>`<div class="row" data-go="${esc(i.v.id)}"><span class="badge ${i.s.key}">${i.s.key==="bad"?"Overdue":"Soon"}</span><div class="what"><b>${esc(vname(i.v))}</b> — ${i.kind}: ${esc(i.s.short)}</div><span class="note">${esc(i.s.rel||"")}</span></div>`).join(""):`<div class="empty">Nothing overdue or due in the next ${SOON_DAYS} days.</div>`}</div>
+  <div class="sechead"><h2>Active · ${active.length}</h2>${canWrite?`<button class="btn small" data-act="add">+ Add vehicle</button>`:""}</div>
+  <div class="grid">${active.map(cardHTML).join("")||`<div class="note">No vehicles yet.</div>`}</div>
+  ${gone.length?`<details class="gone"><summary>Sold / gone · ${gone.length}</summary><div class="grid">${gone.map(cardHTML).join("")}</div></details>`:""}`;
+}
+
+const FIELDS={
+ identity:[["year","Year","year"],["make","Make"],["model","Model"],["trim","Trim"],["type","Type","type"],["vin","VIN","mono"],["plate","License plate","mono"]],
+ ownership:[["regDue","Registration due","date"],["purchaseDate","Purchased","date"],["purchasePrice","Purchase price","money"],["endLoan","Loan ends","date"],["insuranceCarrier","Insurance carrier"],["insurancePolicy","Policy #","mono"],["insuranceExpires","Insurance term ends","date"],["driver","Primary driver","driver"]],
+ maint:[["usageUnit","Track usage in","unit"],["mileage","Current {M}","num"],["milesPerYear","{U} / year (est)","num"],["oilTracked","Track oil changes","bool"],["lastOil","Last oil change","date"],["lastOilMiles","{U} at last oil","num"],["oilIntervalMonths","Oil interval (months)","num"],["oilIntervalMiles","Oil interval ({u})","num"],["nextOil","Next oil change","nextoil"],["battery","12V battery replaced","date"],["tireSize","Tire size","mono"],["tiresReplacedDate","Tires replaced","date"],["tiresReplacedMiles","Tires replaced at ({u})","num"],["tiresRotatedMiles","Tires rotated at ({u})","num"],["notes","Notes","text"]]
+};
+function fieldView(v,[k,,kind]){
+  const val=v[k];
+  if(kind==="bool") return val?"Yes":"No";
+  if(kind==="unit") return unitOf(v)==="hrs"?"Hours":"Miles";
+  if(kind==="nextoil"){ const n=nextOil(v); const o=oilStatus(v); const auto=v.oilIntervalMonths>0&&isDate(v.lastOil); return `${esc(fmt(n)||"—")}${o.nextMiles?` or ${withUnit(o.nextMiles,v)}`:""} ${auto?'<span class="hint">(auto)</span>':""}` }
+  if(kind==="date") return esc(fmt(val))||'<span class="hint">—</span>';
+  if(kind==="money") return typeof val==="number"?"$"+val.toLocaleString(undefined,{maximumFractionDigits:2}):(esc(val)||'<span class="hint">—</span>');
+  if(kind==="year") return esc(val)||'<span class="hint">—</span>';
+  if(kind==="num") return esc(fmtNum(val))||'<span class="hint">—</span>';
+  if(kind==="mono") return val?`<span class="mono">${esc(val)}</span>`:'<span class="hint">—</span>';
+  return esc(val)||'<span class="hint">—</span>';
+}
+function fieldEdit(v,[k,,kind]){
+  const val=v[k];
+  if(kind==="unit") return `<select data-f="${k}"><option value="mi" ${unitOf(v)==="mi"?"selected":""}>Miles</option><option value="hrs" ${unitOf(v)==="hrs"?"selected":""}>Hours</option></select>`;
+  if(kind==="bool") return `<input type="checkbox" data-f="${k}" ${val?"checked":""} style="width:auto">`;
+  if(kind==="type") return `<select data-f="${k}">${[...new Set([...TYPES,val].filter(Boolean))].map(t=>`<option ${t===val?"selected":""}>${esc(t)}</option>`).join("")}</select>`;
+  if(kind==="nextoil") return `<input data-f="${k}" data-kind="date" value="${esc(toInput(val))}" placeholder="MM/YYYY"><div class="hint">Used only when no interval is set</div>`;
+  if(kind==="date") return `<input data-f="${k}" data-kind="date" value="${esc(toInput(val))}" placeholder="MM/DD/YYYY or MM/YYYY">`;
+  if(kind==="num"||kind==="year"||kind==="money") return `<input data-f="${k}" data-kind="num" inputmode="numeric" value="${esc(typeof val==="number"?val:val||"")}">`;
+  if(kind==="driver"){ const opts=[...new Set(vehicles.map(x=>x.driver).filter(Boolean))]; return `<input data-f="${k}" list="drivers" value="${esc(val||"")}"><datalist id="drivers">${opts.map(o=>`<option value="${esc(o)}">`).join("")}</datalist>` }
+  if(kind==="text") return `<textarea data-f="${k}" rows="3" style="width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)">${esc(val||"")}</textarea>`;
+  return `<input data-f="${k}" value="${esc(val||"")}">`;
+}
+function panelHTML(v,title,list){
+  return `<div class="panel"><h2>${title}</h2><div class="kv">${list.map(f=>`<div class="k">${f[1].replace("{M}",unitCur(v)).replace("{U}",unitNoun(v)).replace("{u}",unitOf(v))}</div><div class="v">${editing?fieldEdit(v,f):fieldView(v,f)}</div>`).join("")}</div></div>`;
+}
+function renderDetail(v){
+  const r=regStatus(v), o=oilStatus(v);
+  const batt=isDate(v.battery)?daysUntil(toDate(v.battery)):null;
+  const battAge=batt!==null?(-batt/365):null;
+  $("#app").innerHTML=`
+  <div class="top"><button class="btn back" data-act="garage">← Garage</button>${syncHTML()}</div>
+  <div class="hero">
+    <div class="ph" id="heroph">${photoHTML(v)}
+      ${assets&&canWrite?`<div class="phactions"><label class="btn small">${v.photoId?"Replace photo":"Add photo"}<input type="file" accept="image/*" data-act="photo" hidden></label>${v.photoId?`<button class="btn small" data-act="rmphoto">Remove</button>`:""}<span class="pastehint">or paste / drop an image</span></div>`:""}
+    </div>
+    <div class="hinfo">
+      <div class="cat">${esc(v.type||"")}${v.status==="gone"?" · "+esc(v.goneNote||"Sold / gone"):""}</div>
+      <h1>${esc(vname(v))}</h1>
+      <div class="sub">${esc(v.trim||"")}${v.plate&&!/^na$/i.test(v.plate)?` · Plate <span class="mono">${esc(v.plate)}</span>`:""}</div>
+      <div class="statusgrid">
+        <div class="st"><div class="k">Registration</div><div class="v">${esc(r.short||"—")}</div>${r.applies&&r.key!=="na"?`<span class="badge ${r.key}">${r.key==="ok"?"OK":r.key==="soon"?"Due soon":"Overdue"} · ${esc(r.rel)}</span>`:""}</div>
+        <div class="st"><div class="k">Oil change</div><div class="v">${o.applies?esc(o.short||"—"):"Not tracked"}</div>${o.applies&&o.key!=="na"?`<span class="badge ${o.key}">${o.key==="ok"?"OK":o.key==="soon"?"Due soon":"Overdue"} · ${esc(o.rel)}</span>`:""}</div>
+        <div class="st"><div class="k">${unitOf(v)==="hrs"?"Hours":"Mileage"}</div><div class="v">${typeof v.mileage==="number"?withUnit(v.mileage,v):"—"}</div></div>
+        <div class="st"><div class="k">12V battery</div><div class="v">${isDate(v.battery)?fmt(v.battery):esc(v.battery||"—")}</div>${battAge!==null?`<span class="badge ${battAge>=4?"soon":"na"}">${battAge.toFixed(1)} yrs old</span>`:""}</div>
+      </div>
+      ${canWrite?`<div class="editbar">${editing?`<button class="btn primary" data-act="save">Save changes</button><button class="btn" data-act="cancel">Cancel</button>`:`<button class="btn primary" data-act="edit">Edit details</button><button class="btn" data-act="newservice">+ Log service</button>`}</div>`:""}
+    </div>
+  </div>
+  <div class="panels">
+    ${panelHTML(v,"Identity",FIELDS.identity)}
+    ${panelHTML(v,"Registration & ownership",FIELDS.ownership)}
+  </div>
+  <div class="panels">${panelHTML(v,"Maintenance",FIELDS.maint)}</div>
+  ${vehiclePartsHTML(v)}
+  <div class="panel" style="margin-bottom:18px">
+    <div class="sechead"><h2 style="margin:0">Service log</h2>${canWrite&&!showAddService?`<button class="btn small" data-act="newservice">+ Log service</button>`:""}</div>
+    ${showAddService?serviceFormHTML(v):""}
+    <div class="log">${!serviceLoaded?`<div class="note">Loading…</div>`:serviceList.length?serviceList.map(e=>entryHTML(e,v)).join(""):`<div class="note">No service entries yet.</div>`}</div>
+  </div>
+  ${canWrite?`<div class="editbar">${v.status==="gone"?`<button class="btn" data-act="reactivate">Move back to active</button>`:`<button class="btn danger" data-act="gone">Mark as sold / gone…</button>`}</div>`:""}`;
+}
+function entryHTML(e,v){
+  const u=v?unitOf(v):"mi";
+  const meta=[e.mileage?`${fmtNum(e.mileage)} ${u}`:"",e.shop,e.payType,e.workOrder||"",e.laborHours?`${e.laborHours} labor hrs`:"",typeof e.cost==="number"?`$${e.cost.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`:""].filter(Boolean).join(" · ");
+  return `<div class="entry"><div><div class="d">${esc(fmt(e.date))}</div></div>
+    <div><div class="cat">${esc(e.category||"")}</div><div class="t">${esc(e.title||"")}</div>${e.details?`<div class="x">${esc(e.details)}</div>`:""}<div class="m">${esc(meta)}</div></div>
+    <div>${canWrite?`<button class="btn small ghost" data-act="delservice" data-id="${esc(e.id)}" title="Delete entry">✕</button>`:""}</div></div>`;
+}
+function serviceFormHTML(v){
+  return `<form class="form" id="svcform">
+    <label>Date<input name="date" value="${toInput(todayISO())}" required></label>
+    <label>Category<select name="category">${CATS.map(c=>`<option>${c}</option>`).join("")}</select></label>
+    <label>${unitNoun(v)==="Hours"?"Hours":"Mileage"}<input name="mileage" inputmode="numeric" value="${typeof v.mileage==="number"?v.mileage:""}"></label>
+    <label>Cost ($)<input name="cost" inputmode="decimal"></label>
+    <label class="full">What was done<input name="title" placeholder="e.g. Synthetic oil + filter" required></label>
+    <label class="full">Details<textarea name="details" rows="2"></textarea></label>
+    <label>Shop / who<input name="shop" placeholder="Self, dealer…"></label>
+    <label id="newregwrap" style="display:none">New registration due<input name="newReg" placeholder="MM/YYYY"></label>
+    <div class="full editbar"><button class="btn primary" type="submit">Save entry</button><button class="btn" type="button" data-act="cancelservice">Cancel</button>
+    <span class="hint" id="svchint">Oil change entries update Last / Next oil automatically.</span></div>
+  </form>`;
+}
+
+/* ---------- actions ---------- */
+async function writeVehicle(id,data){
+  if(!db) throw new Error("Database unavailable");
+  await db.doc(`vehicles/${id}`).set(data);
+  queueSync();
+}
+function collectEdits(v){
+  const out={...v}; delete out.id;
+  document.querySelectorAll("[data-f]").forEach(el=>{
+    const k=el.dataset.f;
+    if(el.type==="checkbox") out[k]=el.checked;
+    else if(el.dataset.kind==="date") out[k]=parseDateInput(el.value);
+    else if(el.dataset.kind==="num") out[k]=parseNum(el.value);
+    else out[k]=el.value.trim();
+  });
+  ["year","oilIntervalMonths","oilIntervalMiles"].forEach(k=>{ if(typeof out[k]!=="number") out[k]=out[k]===""?"":out[k] });
+  return out;
+}
+async function saveEdits(){
+  const v=vehicles.find(x=>x.id===route.id); if(!v) return;
+  const data=collectEdits(v);
+  try{ await writeVehicle(v.id,data); editing=false; toast("Saved"); render(); }
+  catch(e){ toast("Save failed: "+(e.message||e.code||"unknown")) }
+}
+async function saveService(form){
+  const v=vehicles.find(x=>x.id===route.id); if(!v) return;
+  const f=new FormData(form);
+  const entry={date:parseDateInput(f.get("date")),category:f.get("category"),mileage:parseNum(f.get("mileage")),title:String(f.get("title")||"").trim(),details:String(f.get("details")||"").trim(),shop:String(f.get("shop")||"").trim(),createdAt:new Date().toISOString()};
+  const c=parseNum(String(f.get("cost")||"").replace(/\$/g,"")); if(c!=="") entry.cost=c;
+  if(!isDate(entry.date)){toast("Enter a date like 11/14/2026");return}
+  form.querySelector("button[type=submit]").disabled=true;
+  try{
+    await db.collection(`vehicles/${v.id}/service`).add(entry);
+    const upd={...v}; delete upd.id; let changed=false;
+    const mi=typeof entry.mileage==="number"?entry.mileage:null;
+    if(mi&&(typeof v.mileage!=="number"||mi>v.mileage)){upd.mileage=mi;changed=true}
+    const newer=(cur)=>!isDate(cur)||entry.date>=cur;
+    if(entry.category==="Oil change"&&newer(v.lastOil)){upd.lastOil=entry.date;if(mi)upd.lastOilMiles=mi;upd.oilTracked=true;changed=true}
+    if(entry.category==="Tires replaced"&&newer(v.tiresReplacedDate)){upd.tiresReplacedDate=entry.date;if(mi)upd.tiresReplacedMiles=mi;changed=true}
+    if(entry.category==="Tire rotation"&&mi){upd.tiresRotatedMiles=mi;changed=true}
+    if(entry.category==="12V battery"&&newer(v.battery)){upd.battery=entry.date;changed=true}
+    if(entry.category==="Registration renewal"){const nr=parseDateInput(f.get("newReg"));if(isDate(nr)){upd.regDue=nr;changed=true}}
+    if(changed) await writeVehicle(v.id,upd);
+    showAddService=false; toast(changed?"Logged and vehicle updated":"Logged"); render();
+  }catch(e){ toast("Couldn't save entry: "+(e.message||e.code)); form.querySelector("button[type=submit]").disabled=false }
+}
+async function resizeImage(file){
+  try{
+    const bmp=await createImageBitmap(file); const max=1800; const s=Math.min(1,max/Math.max(bmp.width,bmp.height));
+    const c=document.createElement("canvas"); c.width=Math.round(bmp.width*s); c.height=Math.round(bmp.height*s);
+    c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+    return await new Promise(r=>c.toBlob(b=>r(b||file),"image/jpeg",.86));
+  }catch{ return file }
+}
+async function uploadPhoto(file){
+  const v=vehicles.find(x=>x.id===route.id); if(!v||!assets) return;
+  toast("Uploading photo…");
+  try{
+    const blob=await resizeImage(file);
+    const type=["image/jpeg","image/png","image/webp","image/gif"].includes(blob.type)?blob.type:"image/jpeg";
+    const res=await assets.upload(blob,{type});
+    const upd={...v}; delete upd.id; upd.photoId=res.id;
+    await db.doc(`vehicles/${v.id}`).set(upd);
+    toast("Photo saved");
+  }catch(e){ toast(e.code==="too_large"?"That photo is too large":e.code==="unsupported_type"?"Use a JPG, PNG or WebP photo":"Upload failed: "+(e.message||e.code)) }
+}
+async function removePhoto(){
+  const v=vehicles.find(x=>x.id===route.id); if(!v) return;
+  const id=v.photoId; const upd={...v}; delete upd.id; delete upd.photoId;
+  try{ await db.doc(`vehicles/${v.id}`).set(upd); if(assets&&id) assets.delete(id).catch(()=>{}); toast("Photo removed") }catch(e){ toast("Couldn't remove: "+(e.message||e.code)) }
+}
+function modal(html,onSubmit){
+  const m=document.createElement("div"); m.className="modal"; m.innerHTML=`<div class="box">${html}</div>`;
+  document.body.appendChild(m);
+  m.addEventListener("click",e=>{ if(e.target===m||e.target.dataset.close!==undefined) m.remove() });
+  const form=m.querySelector("form"); form&&form.addEventListener("submit",async e=>{e.preventDefault(); const ok=await onSubmit(new FormData(form)); if(ok!==false) m.remove()});
+  const first=m.querySelector("input"); first&&first.focus();
+}
+function addVehicleDialog(){
+  modal(`<h2>Add vehicle</h2><form class="form" style="background:none;padding:0">
+    <label>Year<input name="year" inputmode="numeric" required></label><label>Make<input name="make" required></label>
+    <label>Model<input name="model" required></label><label>Trim<input name="trim"></label>
+    <label>Type<select name="type">${TYPES.map(t=>`<option>${t}</option>`).join("")}</select></label>
+    <label>Plate<input name="plate"></label><label class="full">VIN<input name="vin"></label>
+    <label>Registration due<input name="regDue" placeholder="MM/YYYY"></label><label>Mileage<input name="mileage" inputmode="numeric"></label>
+    <div class="full editbar"><button class="btn primary" type="submit">Add</button><button class="btn" type="button" data-close>Cancel</button></div></form>`,
+  async f=>{
+    const g=k=>String(f.get(k)||"").trim();
+    const id=(g("year")+"-"+g("make")+"-"+g("model")).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")+"-"+Math.random().toString(36).slice(2,6);
+    const type=g("type");
+    const data={status:"active",order:Math.max(0,...vehicles.map(v=>v.order||0))+1,year:parseNum(g("year")),make:g("make"),model:g("model"),trim:g("trim"),type,vin:g("vin"),plate:g("plate"),regDue:parseDateInput(g("regDue")),mileage:parseNum(g("mileage")),oilTracked:!["EV","Trailer"].includes(type),createdAt:new Date().toISOString()};
+    try{ await writeVehicle(id,data); location.hash="v-"+id; toast("Vehicle added") }catch(e){ toast("Couldn't add: "+(e.message||e.code)); return false }
+  });
+}
+function goneDialog(){
+  const v=vehicles.find(x=>x.id===route.id); if(!v) return;
+  modal(`<h2>Mark ${esc(vname(v))} as gone</h2><form class="form" style="background:none;padding:0">
+    <label class="full">Note<input name="note" placeholder="Sold 11/2026, wrecked, traded in…"></label>
+    <div class="full note">It moves to the Sold / gone section here and below the GONE! line in the Sheet. You can move it back.</div>
+    <div class="full editbar"><button class="btn primary" type="submit">Mark as gone</button><button class="btn" type="button" data-close>Cancel</button></div></form>`,
+  async f=>{ const upd={...v}; delete upd.id; upd.status="gone"; upd.goneNote=String(f.get("note")||"").trim(); try{ await writeVehicle(v.id,upd); toast("Moved to Sold / gone") }catch(e){ toast("Failed: "+(e.message||e.code)); return false } });
+}
+async function reactivate(){ const v=vehicles.find(x=>x.id===route.id); if(!v) return; const upd={...v}; delete upd.id; upd.status="active"; delete upd.goneNote; try{ await writeVehicle(v.id,upd); toast("Back in active") }catch(e){ toast("Failed: "+(e.message||e.code)) } }
+async function delService(sid){
+  const v=vehicles.find(x=>x.id===route.id); if(!v) return;
+  const e=serviceList.find(x=>x.id===sid);
+  modal(`<h2>Delete this entry?</h2><p>${esc(fmt(e?.date))} — ${esc(e?.title||"")}</p><p class="note">This can't be undone. Vehicle fields it updated stay as they are.</p><form><div class="editbar"><button class="btn primary" type="submit" style="background:var(--bad);border-color:var(--bad)">Delete</button><button class="btn" type="button" data-close>Cancel</button></div></form>`,
+  async()=>{ try{ await db.doc(`vehicles/${v.id}/service/${sid}`).delete(); toast("Entry deleted") }catch(err){ toast("Failed: "+(err.message||err.code)); return false } });
+}
+
+/* ---------- parts & tools ---------- */
+const activeVehicles=()=>vehicles.filter(v=>v.status!=="gone").sort((a,b)=>(a.order??0)-(b.order??0));
+function shortName(id){ if(id==="shop") return "Shop / general"; const v=vehicles.find(x=>x.id===id); return v?[v.year,v.model].filter(Boolean).join(" "):id }
+const fitsText=p=>(p.fits||[]).map(shortName).join(", ");
+function partMatches(p){
+  if(pf.veh&&!(p.fits||[]).includes(pf.veh)) return false;
+  if(pf.kind&&(p.kind||"Part")!==pf.kind) return false;
+  if(pf.low&&!partLow(p)) return false;
+  if(pf.q){ const hay=[p.name,p.brand,p.partNumber,p.altNumbers,p.category,p.location,p.vendor,p.notes,fitsText(p)].join(" ").toLowerCase(); if(!pf.q.toLowerCase().split(/\s+/).every(w=>hay.includes(w))) return false }
+  return true;
+}
+function qtyHTML(p){ const q=typeof p.qty==="number"?p.qty:"—"; return `<span class="qty">${canWrite?`<button class="btn small" data-act="qty" data-id="${esc(p.id)}" data-d="-1" title="Use one">−</button>`:""}<b>${q}</b>${canWrite?`<button class="btn small" data-act="qty" data-id="${esc(p.id)}" data-d="1" title="Add one">+</button>`:""}</span>${p.unit&&p.unit!=="ea"?` <span class="note">${esc(p.unit)}</span>`:""}` }
+function partRowHTML(p){
+  return `<tr class="${partLow(p)?"low":""}">
+    <td data-edit="${esc(p.id)}" style="cursor:pointer"><b>${esc(p.name)}</b>${partLow(p)?` <span class="badge soon">Low</span>`:""}<div class="note">${esc([p.kind&&p.kind!=="Part"?p.kind:"",p.category!==p.kind?p.category:"",p.brand].filter(Boolean).join(" · "))}${p.partNumber?` · <span class="mono">${esc(p.partNumber)}</span>`:""}${p.altNumbers?` <span class="hint">(alt ${esc(p.altNumbers)})</span>`:""}</div>${p.notes?`<div class="hint">${esc(p.notes)}</div>`:""}</td>
+    <td><div class="chips">${(p.fits||[]).map(f=>`<span class="chip">${esc(shortName(f))}</span>`).join("")||'<span class="hint">—</span>'}</div></td>
+    <td>${esc(p.location||"")||'<span class="hint">—</span>'}</td>
+    <td>${qtyHTML(p)}</td>
+    <td class="note">${typeof p.minQty==="number"?p.minQty:"—"}</td>
+    <td>${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener" class="note">${esc(p.vendor||"Buy")}</a>`:esc(p.vendor||"")}</td>
+    <td>${canWrite?`<button class="btn small ghost" data-act="editpart" data-id="${esc(p.id)}">Edit</button>`:""}</td></tr>`;
+}
+function partsTableHTML(list){
+  if(!list.length) return `<div class="empty" style="padding:16px;color:var(--ink2)">${parts.length?"Nothing matches those filters.":"No parts yet. Add oil filters, plugs, belts, fluids and tools here, and tag which vehicles each one fits."}</div>`;
+  return `<table class="t"><thead><tr><th>Item</th><th>Fits</th><th>Location</th><th>On hand</th><th>Min</th><th>Source</th><th></th></tr></thead><tbody>${list.map(partRowHTML).join("")}</tbody></table>`;
+}
+const sortParts=l=>[...l].sort((a,b)=>(partLow(b)-partLow(a))||String(a.category||"").localeCompare(String(b.category||""))||String(a.name||"").localeCompare(String(b.name||"")));
+function renderParts(){
+  const av=activeVehicles();
+  $("#app").innerHTML=`${topHTML("garage")}${garageSubnav("parts")}
+  <div class="toolbar">
+    <input type="search" id="pq" placeholder="Search name, part #, brand, shelf…" value="${esc(pf.q)}">
+    <select id="pveh"><option value="">All vehicles</option><option value="shop" ${pf.veh==="shop"?"selected":""}>Shop / general</option>${av.map(v=>`<option value="${esc(v.id)}" ${pf.veh===v.id?"selected":""}>${esc(vname(v))}</option>`).join("")}</select>
+    <select id="pkind"><option value="">Parts, fluids &amp; tools</option>${PART_KINDS.map(k=>`<option ${pf.kind===k?"selected":""}>${k}</option>`).join("")}</select>
+    <label class="note" style="display:flex;gap:5px;align-items:center"><input type="checkbox" id="plow" ${pf.low?"checked":""}> Low only</label>
+    ${canWrite?`<button class="btn small primary" data-act="addpart">+ Add item</button>`:""}
+  </div>
+  <div class="tablewrap" id="ptable">${partsTableHTML(sortParts(parts.filter(partMatches)))}</div>
+  <p class="hint">Set a minimum to get a "Low" flag when stock drops to it. Use − when you pull one off the shelf.</p>`;
+}
+function refreshPartsTable(){ const el=$("#ptable"); if(el) el.innerHTML=partsTableHTML(sortParts(parts.filter(partMatches))); else render() }
+function vehiclePartsHTML(v){
+  const mine=sortParts(parts.filter(p=>(p.fits||[]).includes(v.id)));
+  const lists=checklists.filter(c=>c.vehicleId===v.id);
+  return `<div class="panels">
+    <div class="panel"><div class="sechead"><h2 style="margin:0">Parts &amp; fluids</h2>${canWrite?`<button class="btn small" data-act="addpart" data-veh="${esc(v.id)}">+ Add part</button>`:""}</div>
+      ${mine.length?`<div class="tablewrap" style="box-shadow:none"><table class="t"><tbody>${mine.map(p=>`<tr class="${partLow(p)?"low":""}"><td data-edit="${esc(p.id)}" style="cursor:pointer"><b>${esc(p.name)}</b><div class="note">${esc([p.category,p.brand].filter(Boolean).join(" · "))}${p.partNumber?` · <span class="mono">${esc(p.partNumber)}</span>`:""}</div>${p.notes?`<div class="hint">${esc(p.notes)}</div>`:""}</td><td class="note">${esc(p.location||"")}</td><td>${qtyHTML(p)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="note">No parts tagged for this ${v.type==="Trailer"?"trailer":"vehicle"} yet.</div>`}
+    </div>
+    ${lists.length?`<div class="panel"><h2>Seasonal</h2><div class="log">${lists.map(c=>{const s=listStatus(c);return `<div class="entry" style="grid-template-columns:1fr auto;cursor:pointer" data-hash="s-${esc(c.id)}"><div><div class="t">${esc(c.name)}</div><div class="m">${s.nDone}/${s.total} done</div></div><span class="badge ${s.key}">${esc(s.short)}</span></div>`}).join("")}</div></div>`:""}
+  </div>`;
+}
+function partDialog(p,presetVeh){
+  const isNew=!p; p=p||{kind:"Part",fits:presetVeh?[presetVeh]:[],unit:"ea"};
+  const av=activeVehicles(); const fits=new Set(p.fits||[]);
+  const extra=[...fits].filter(f=>f!=="shop"&&!av.some(v=>v.id===f));
+  modal(`<h2>${isNew?"Add item":"Edit "+esc(p.name)}</h2><form class="form" style="background:none;padding:0">
+    <label>Kind<select name="kind">${PART_KINDS.map(k=>`<option ${k===(p.kind||"Part")?"selected":""}>${k}</option>`).join("")}</select></label>
+    <label>Category<select name="category">${[...new Set([...PART_CATS,p.category].filter(Boolean))].map(c=>`<option ${c===p.category?"selected":""}>${esc(c)}</option>`).join("")}</select></label>
+    <label class="full">Name<input name="name" value="${esc(p.name||"")}" placeholder="e.g. Oil filter, 5W-30 full synthetic, 10mm socket" required></label>
+    <label>Brand<input name="brand" value="${esc(p.brand||"")}"></label>
+    <label>Part #<input name="partNumber" value="${esc(p.partNumber||"")}"></label>
+    <label class="full">Cross-ref / alt part #s<input name="altNumbers" value="${esc(p.altNumbers||"")}" placeholder="WIX 51348, Fram PH3614…"></label>
+    <div class="full"><div class="note" style="margin-bottom:4px">Fits</div><div class="checkgrid">
+      <label><input type="checkbox" name="fits" value="shop" ${fits.has("shop")?"checked":""}> Shop / general</label>
+      ${av.map(v=>`<label><input type="checkbox" name="fits" value="${esc(v.id)}" ${fits.has(v.id)?"checked":""}> ${esc(vname(v))}</label>`).join("")}
+      ${extra.map(f=>`<label><input type="checkbox" name="fits" value="${esc(f)}" checked> ${esc(shortName(f))}</label>`).join("")}
+    </div></div>
+    <label>On hand<input name="qty" inputmode="decimal" value="${typeof p.qty==="number"?p.qty:""}"></label>
+    <label>Low at (min)<input name="minQty" inputmode="decimal" value="${typeof p.minQty==="number"?p.minQty:""}" placeholder="blank = no alert"></label>
+    <label>Unit<input name="unit" value="${esc(p.unit||"ea")}" placeholder="ea, qt, gal, set"></label>
+    <label>Shelf / bin<input name="location" value="${esc(p.location||"")}"></label>
+    <label>Where to buy<input name="vendor" value="${esc(p.vendor||"")}" placeholder="Rural King, Amazon, dealer…"></label>
+    <label>Price ($)<input name="price" inputmode="decimal" value="${typeof p.price==="number"?p.price:esc(p.price||"")}"></label>
+    <label class="full">Link<input name="url" value="${esc(p.url||"")}" placeholder="https://…"></label>
+    <label class="full">Notes<textarea name="notes" rows="2">${esc(p.notes||"")}</textarea></label>
+    <div class="full editbar"><button class="btn primary" type="submit">${isNew?"Add":"Save"}</button><button class="btn" type="button" data-close>Cancel</button>${!isNew?`<span style="flex:1"></span><button class="btn danger" type="button" data-act="delpart" data-id="${esc(p.id)}">Delete</button>`:""}</div></form>`,
+  async f=>{
+    const g=k=>String(f.get(k)||"").trim();
+    const num=k=>{const n=parseNum(g(k));return typeof n==="number"?n:""};
+    const url=g("url");
+    const data={...p,kind:g("kind"),category:g("category"),name:g("name"),brand:g("brand"),partNumber:g("partNumber"),altNumbers:g("altNumbers"),fits:f.getAll("fits").map(String),qty:num("qty"),minQty:num("minQty"),unit:g("unit")||"ea",location:g("location"),vendor:g("vendor"),price:num("price")===""?g("price").replace(/^\$/,""):num("price"),url:/^https?:\/\//i.test(url)?url:"",notes:g("notes"),updatedAt:new Date().toISOString()};
+    delete data.id;
+    const id=p.id||slug(data.name)+"-"+Math.random().toString(36).slice(2,6);
+    if(isNew) data.createdAt=new Date().toISOString();
+    try{ await db.doc(`parts/${id}`).set(data); toast(isNew?"Added":"Saved") }catch(e){ toast("Couldn't save: "+(e.message||e.code)); return false }
+  });
+}
+const slug=s=>String(s||"item").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"item";
+async function bumpQty(id,d){
+  const p=parts.find(x=>x.id===id); if(!p) return;
+  const q=Math.max(0,(typeof p.qty==="number"?p.qty:0)+d);
+  const upd={...p}; delete upd.id; upd.qty=q; upd.updatedAt=new Date().toISOString();
+  p.qty=q; refreshPartsTable(); if(route.view==="vehicle") render();
+  try{ await db.doc(`parts/${id}`).set(upd); if(partLow(upd)&&d<0) toast(`${p.name}: ${q} left — time to restock`) }catch(e){ toast("Couldn't update: "+(e.message||e.code)) }
+}
+function confirmDelete(what,fn){
+  document.querySelector(".modal")?.remove();
+  modal(`<h2>Delete ${esc(what)}?</h2><p class="note">This can't be undone.</p><form><div class="editbar"><button class="btn primary" type="submit" style="background:var(--bad);border-color:var(--bad)">Delete</button><button class="btn" type="button" data-close>Cancel</button></div></form>`,
+  async()=>{ try{ await fn(); toast("Deleted") }catch(e){ toast("Failed: "+(e.message||e.code)); return false } });
+}
+
+/* ---------- home maintenance ---------- */
+const activeTasks=()=>homeTasks.filter(t=>t.status!=="archived").sort((a,b)=>{const sa=taskStatus(a),sb=taskStatus(b);const r={bad:0,soon:1,na:2,ok:3};return r[sa.key]-r[sb.key]||((sa.days??1e9)-(sb.days??1e9))||String(a.name).localeCompare(String(b.name))});
+const everyText=t=>t.intervalMonths>0?(t.intervalMonths%12===0?(t.intervalMonths===12?"Yearly":`Every ${t.intervalMonths/12} yrs`):t.intervalMonths===1?"Monthly":`Every ${t.intervalMonths} mo`):"One-time / as needed";
+function taskRowHTML(t){
+  const s=taskStatus(t);
+  return `<div class="r" data-hash="h-${esc(t.id)}"><span class="badge ${s.key}" style="min-width:74px;justify-content:center">${s.key==="bad"?"Overdue":s.key==="soon"?"Soon":s.key==="ok"?"OK":"Set up"}</span>
+    <div class="what"><b>${esc(t.name)}</b><span class="note">${esc([t.area,everyText(t),isDate(t.lastDone)?"last "+fmt(t.lastDone):"never logged"].filter(Boolean).join(" · "))}</span></div>
+    <span class="note" style="text-align:right">${esc(s.short)}${s.rel?`<br>${esc(s.rel)}`:""}</span>
+    ${canWrite?`<button class="btn small" data-act="taskdone" data-id="${esc(t.id)}" title="Log it done today">✓ Done</button>`:""}</div>`;
+}
+function equipCardHTML(e){
+  const w=warrantyStatus(e); const age=isDate(e.installDate)?(-daysUntil(toDate(e.installDate))/365):null;
+  const tasks=homeTasks.filter(t=>t.equipmentId===e.id&&t.status!=="archived");
+  return `<div class="panel" style="cursor:pointer" data-equip="${esc(e.id)}"><div class="cat">${esc(e.area||"Equipment")}</div><h3 style="font-size:20px;margin:2px 0 6px">${esc(e.name)}</h3>
+    <div class="kv">${[["Brand / model",[e.brand,e.model].filter(Boolean).join(" ")],["Serial",e.serial],["Specs",e.specs],["Installed",isDate(e.installDate)?`${fmt(e.installDate)}${age!==null?` (${age.toFixed(1)} yrs)`:""}`:e.installDate],["Filter",e.filterSize],["Location",e.location],["Installer",e.installer]].filter(r=>r[1]).map(([k,v])=>`<div class="k">${k}</div><div class="v">${esc(v)}</div>`).join("")}</div>
+    <div class="badges" style="margin-top:10px">${w?`<span class="badge ${w.key}">${esc(w.short)}</span>`:""}${tasks.map(t=>{const s=taskStatus(t);return `<span class="badge ${s.key}">${esc(t.name)}: ${esc(s.short)}</span>`}).join("")}</div></div>`;
+}
+function renderHomeTab(){
+  const tasks=activeTasks(), arch=homeTasks.filter(t=>t.status==="archived");
+  $("#app").innerHTML=`${topHTML("home")}
+  <div class="sechead"><h2>Recurring tasks · ${tasks.length}</h2>${canWrite?`<button class="btn small" data-act="addtask">+ Add task</button>`:""}</div>
+  <div class="rowlist">${tasks.map(taskRowHTML).join("")||`<div class="r note">No tasks yet.</div>`}</div>
+  <p class="hint">"Set up" means it has never been logged. Hit ✓ Done the next time you do it (or open it and log a past date) and the clock starts.</p>
+  <div class="sechead" style="margin-top:26px"><h2>Systems &amp; equipment · ${equipment.length}</h2>${canWrite?`<button class="btn small" data-act="addequip">+ Add equipment</button>`:""}</div>
+  <div class="panels">${equipment.map(equipCardHTML).join("")||`<div class="note">Add your HVAC, water heater, appliances and the like to keep model, serial, install date and warranty in one place.</div>`}</div>
+  ${arch.length?`<details class="gone"><summary>Archived tasks · ${arch.length}</summary><div class="rowlist" style="margin-top:12px">${arch.map(taskRowHTML).join("")}</div></details>`:""}`;
+}
+function renderTask(t){
+  const s=taskStatus(t); const e=equipment.find(x=>x.id===t.equipmentId);
+  $("#app").innerHTML=`<div class="top"><button class="btn back" data-act="hometab">← Home</button>${syncHTML()}</div>
+  <div class="hinfo" style="margin-bottom:16px"><div class="cat">${esc(t.area||"Home")}${t.status==="archived"?" · Archived":""}</div><h1>${esc(t.name)}</h1>${t.howTo?`<div class="sub" style="white-space:pre-wrap">${esc(t.howTo)}</div>`:""}
+    <div class="statusgrid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+      <div class="st"><div class="k">Next due</div><div class="v">${esc(s.short)}</div>${s.key!=="na"?`<span class="badge ${s.key}">${s.key==="ok"?"OK":s.key==="soon"?"Due soon":"Overdue"} · ${esc(s.rel)}</span>`:""}</div>
+      <div class="st"><div class="k">Last done</div><div class="v">${isDate(t.lastDone)?fmt(t.lastDone):"Never logged"}</div></div>
+      <div class="st"><div class="k">How often</div><div class="v">${esc(everyText(t))}</div></div>
+      ${e?`<div class="st" style="cursor:pointer" data-equip="${esc(e.id)}"><div class="k">Equipment</div><div class="v">${esc(e.name)}</div>${e.filterSize?`<div class="note">Filter ${esc(e.filterSize)}</div>`:""}</div>`:""}
+    </div>
+    ${canWrite?`<div class="editbar"><button class="btn primary" data-act="newlog">✓ Log it done</button><button class="btn" data-act="edittask" data-id="${esc(t.id)}">Edit task</button></div>`:""}
+  </div>
+  ${t.notes?`<div class="panel" style="margin-bottom:16px"><h2>Notes</h2><div style="white-space:pre-wrap">${esc(t.notes)}</div></div>`:""}
+  <div class="panel" style="margin-bottom:18px"><div class="sechead"><h2 style="margin:0">History</h2></div>
+    ${showAddLog?logFormHTML():""}
+    <div class="log">${!logLoaded?`<div class="note">Loading…</div>`:logList.length?logList.map(logEntryHTML).join(""):`<div class="note">Nothing logged yet.</div>`}</div></div>`;
+}
+function logFormHTML(){ return `<form class="form" id="logform"><label>Date<input name="date" value="${toInput(todayISO())}" required></label><label>Cost ($)<input name="cost" inputmode="decimal"></label><label>Who<input name="who" placeholder="Self, contractor…"></label><label class="full">Note<input name="note" placeholder="Optional — e.g. MERV 11, 20x25x1"></label><div class="full editbar"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" data-act="cancellog">Cancel</button></div></form>` }
+function logEntryHTML(l){ const meta=[l.who,typeof l.cost==="number"?`$${l.cost.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`:""].filter(Boolean).join(" · "); return `<div class="entry"><div class="d">${esc(fmt(l.date))}</div><div><div class="t">${esc(l.note||"Done")}</div><div class="m">${esc(meta)}</div></div><div>${canWrite?`<button class="btn small ghost" data-act="dellog" data-id="${esc(l.id)}" title="Delete">✕</button>`:""}</div></div>` }
+async function writeTaskDone(t,entry){
+  await db.collection(`home/${t.id}/log`).add(entry);
+  if(!isDate(t.lastDone)||entry.date>=t.lastDone){ const upd={...t}; delete upd.id; upd.lastDone=entry.date; await db.doc(`home/${t.id}`).set(upd) }
+}
+async function quickDone(id){ const t=homeTasks.find(x=>x.id===id); if(!t) return; try{ await writeTaskDone(t,{date:todayISO(),note:"Done",createdAt:new Date().toISOString()}); toast(`Logged: ${t.name}`) }catch(e){ toast("Couldn't log: "+(e.message||e.code)) } }
+async function saveLog(form){
+  const t=homeTasks.find(x=>x.id===route.id); if(!t) return;
+  const f=new FormData(form); const date=parseDateInput(f.get("date"));
+  if(!isFull(date)&&!isMonth(date)){ toast("Enter a date like 11/15/2026"); return }
+  const entry={date,note:String(f.get("note")||"").trim(),who:String(f.get("who")||"").trim(),createdAt:new Date().toISOString()};
+  const c=parseNum(String(f.get("cost")||"").replace(/\$/g,"")); if(typeof c==="number") entry.cost=c;
+  form.querySelector("button[type=submit]").disabled=true;
+  try{ await writeTaskDone(t,entry); showAddLog=false; toast("Logged"); render() }catch(e){ toast("Couldn't save: "+(e.message||e.code)); form.querySelector("button[type=submit]").disabled=false }
+}
+function taskDialog(t){
+  const isNew=!t; t=t||{area:"HVAC",intervalMonths:12};
+  modal(`<h2>${isNew?"Add home task":"Edit task"}</h2><form class="form" style="background:none;padding:0">
+    <label class="full">Task<input name="name" value="${esc(t.name||"")}" placeholder="e.g. Replace HVAC filter" required></label>
+    <label>Area<select name="area">${[...new Set([...HOME_AREAS,t.area].filter(Boolean))].map(a=>`<option ${a===t.area?"selected":""}>${esc(a)}</option>`).join("")}</select></label>
+    <label>Every (months)<input name="intervalMonths" inputmode="numeric" value="${t.intervalMonths||""}" placeholder="blank = one-time"></label>
+    <label>Last done<input name="lastDone" value="${esc(toInput(t.lastDone))}" placeholder="MM/DD/YYYY or MM/YYYY"></label>
+    <label>Next due (if no interval)<input name="nextDue" value="${esc(toInput(t.nextDue))}" placeholder="MM/YYYY"></label>
+    <label class="full">Equipment<select name="equipmentId"><option value="">—</option>${equipment.map(e=>`<option value="${esc(e.id)}" ${e.id===t.equipmentId?"selected":""}>${esc(e.name)}</option>`).join("")}</select></label>
+    <label class="full">How-to / spec<textarea name="howTo" rows="2" placeholder="Filter size, steps, what to buy">${esc(t.howTo||"")}</textarea></label>
+    <label class="full">Notes<textarea name="notes" rows="2">${esc(t.notes||"")}</textarea></label>
+    ${!isNew?`<label class="full" style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" name="archived" ${t.status==="archived"?"checked":""} style="width:auto"> Archived (stop tracking)</label>`:""}
+    <div class="full editbar"><button class="btn primary" type="submit">${isNew?"Add":"Save"}</button><button class="btn" type="button" data-close>Cancel</button>${!isNew?`<span style="flex:1"></span><button class="btn danger" type="button" data-act="deltask" data-id="${esc(t.id)}">Delete</button>`:""}</div></form>`,
+  async f=>{
+    const g=k=>String(f.get(k)||"").trim(); const im=parseNum(g("intervalMonths"));
+    const data={...t,name:g("name"),area:g("area"),intervalMonths:typeof im==="number"?im:"",lastDone:parseDateInput(g("lastDone")),nextDue:parseDateInput(g("nextDue")),equipmentId:g("equipmentId"),howTo:g("howTo"),notes:g("notes"),status:f.get("archived")?"archived":"active"};
+    delete data.id; const id=t.id||slug(data.name)+"-"+Math.random().toString(36).slice(2,6);
+    if(isNew) data.createdAt=new Date().toISOString();
+    try{ await db.doc(`home/${id}`).set(data); toast(isNew?"Task added":"Saved") }catch(e){ toast("Couldn't save: "+(e.message||e.code)); return false }
+  });
+}
+function equipDialog(e){
+  const isNew=!e; e=e||{area:"HVAC"};
+  modal(`<h2>${isNew?"Add equipment":"Edit "+esc(e.name)}</h2><form class="form" style="background:none;padding:0">
+    <label class="full">Name<input name="name" value="${esc(e.name||"")}" placeholder="e.g. Water heater" required></label>
+    <label>Area<select name="area">${[...new Set([...HOME_AREAS,e.area].filter(Boolean))].map(a=>`<option ${a===e.area?"selected":""}>${esc(a)}</option>`).join("")}</select></label>
+    <label>Brand<input name="brand" value="${esc(e.brand||"")}"></label>
+    <label>Model #<input name="model" value="${esc(e.model||"")}"></label>
+    <label>Serial #<input name="serial" value="${esc(e.serial||"")}"></label>
+    <label class="full">Specs<input name="specs" value="${esc(e.specs||"")}" placeholder="3 ton, 16 SEER, 50 gal…"></label>
+    <label>Installed<input name="installDate" value="${esc(toInput(e.installDate))}" placeholder="MM/YYYY"></label>
+    <label>Warranty ends<input name="warrantyEnds" value="${esc(toInput(e.warrantyEnds))}" placeholder="MM/YYYY"></label>
+    <label>Filter size<input name="filterSize" value="${esc(e.filterSize||"")}" placeholder="20x25x1"></label>
+    <label>Location<input name="location" value="${esc(e.location||"")}"></label>
+    <label class="full">Installer / service co.<input name="installer" value="${esc(e.installer||"")}"></label>
+    <label class="full">Notes<textarea name="notes" rows="2">${esc(e.notes||"")}</textarea></label>
+    <div class="full editbar"><button class="btn primary" type="submit">${isNew?"Add":"Save"}</button><button class="btn" type="button" data-close>Cancel</button>${!isNew?`<span style="flex:1"></span><button class="btn danger" type="button" data-act="delequip" data-id="${esc(e.id)}">Delete</button>`:""}</div></form>`,
+  async f=>{
+    const g=k=>String(f.get(k)||"").trim();
+    const data={...e,name:g("name"),area:g("area"),brand:g("brand"),model:g("model"),serial:g("serial"),specs:g("specs"),installDate:parseDateInput(g("installDate")),warrantyEnds:parseDateInput(g("warrantyEnds")),filterSize:g("filterSize"),location:g("location"),installer:g("installer"),notes:g("notes")};
+    delete data.id; const id=e.id||slug(data.name)+"-"+Math.random().toString(36).slice(2,6);
+    try{ await db.doc(`equipment/${id}`).set(data); toast(isNew?"Added":"Saved") }catch(err){ toast("Couldn't save: "+(err.message||err.code)); return false }
+  });
+}
+
+/* ---------- seasonal checklists ---------- */
+function listCardHTML(c){
+  const s=listStatus(c); const v=vehicles.find(x=>x.id===c.vehicleId); const pct=s.total?Math.round(s.nDone/s.total*100):0;
+  return `<div class="card" data-hash="s-${esc(c.id)}" style="cursor:pointer"><div class="cb">
+    <div class="cat">${esc(c.season||"")} · ${MON[(+c.startMonth||1)-1]}–${MON[(+c.dueMonth||1)-1]}${v?" · "+esc([v.year,v.model].join(" ")):""}</div>
+    <h3>${esc(c.name)}</h3>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <div class="sub">${s.nDone} of ${s.total} done</div>
+    <div class="badges"><span class="badge ${s.key}">${esc(s.short)}${s.open&&s.rel?" · "+esc(s.rel):""}</span></div></div></div>`;
+}
+function renderSeasonal(){
+  const withS=checklists.map(c=>({c,s:listStatus(c)}));
+  const open=withS.filter(x=>x.s.open).sort((a,b)=>(a.s.key==="bad"?0:1)-(b.s.key==="bad"?0:1)||a.s.days-b.s.days);
+  const done=withS.filter(x=>x.s.complete);
+  const later=withS.filter(x=>x.s.idle).sort((a,b)=>a.s.cy.nextWs-b.s.cy.nextWs);
+  const grid=l=>`<div class="grid">${l.map(x=>listCardHTML(x.c)).join("")}</div>`;
+  $("#app").innerHTML=`${topHTML("seasonal")}
+  <div class="sechead"><h2>Seasonal checklists</h2>${canWrite?`<button class="btn small" data-act="addlist">+ New checklist</button>`:""}</div>
+  ${!checklists.length?`<div class="note">No checklists yet.</div>`:""}
+  ${open.length?`<div class="seclabel">In season now</div>${grid(open)}`:""}
+  ${done.length?`<div class="seclabel">Done this season</div>${grid(done)}`:""}
+  ${later.length?`<div class="seclabel">Later in the year</div>${grid(later)}`:""}
+  <p class="hint" style="margin-top:16px">Each list opens on its start month and is due by the end of its due month. Checks clear on their own when the list's season comes around again.</p>`;
+}
+function renderList(c){
+  const s=listStatus(c); const v=vehicles.find(x=>x.id===c.vehicleId); const cy=s.cy;
+  $("#app").innerHTML=`<div class="top"><button class="btn back" data-act="seasontab">← Seasonal</button>${syncHTML()}</div>
+  <div class="hinfo" style="margin-bottom:16px"><div class="cat">${esc(c.season||"")} · ${MONTHS[(+c.startMonth||1)-1]} – ${MONTHS[(+c.dueMonth||1)-1]}${v?` · <a href="#v-${esc(v.id)}">${esc(vname(v))}</a>`:""}</div><h1>${esc(c.name)}</h1>
+    <div class="editbar"><span class="badge ${s.key}">${esc(s.short)}${s.rel?" · "+esc(s.rel):""}</span><span class="note">${s.nDone} of ${s.total} done for ${esc(seasonLabel(c,cy))}</span></div></div>
+  <div class="panel" style="margin-bottom:16px">
+    <ul class="cl">${(c.items||[]).map(it=>{const d=itemDone(it,cy);return `<li class="${d?"done":""}"><input type="checkbox" data-act="toggleitem" data-id="${esc(it.id)}" ${d?"checked":""} ${canWrite?"":"disabled"}><span class="tx">${esc(it.text)}</span>${d?`<span class="when">${esc(fmt(it.doneAt))}</span>`:""}${canWrite?`<button class="btn small ghost" data-act="delitem" data-id="${esc(it.id)}" title="Remove from list">✕</button>`:""}</li>`}).join("")||`<li class="note">No items yet.</li>`}</ul>
+    ${canWrite?`<form id="additem" class="toolbar" style="margin:12px 0 0"><input name="text" placeholder="Add an item…" style="flex:1" required><button class="btn small" type="submit">Add</button></form>`:""}
+  </div>
+  ${c.notes?`<div class="panel" style="margin-bottom:16px"><h2>Notes</h2><div style="white-space:pre-wrap">${esc(c.notes)}</div></div>`:""}
+  ${canWrite?`<div class="editbar">${s.complete?`<button class="btn" data-act="reopenlist">Reopen this season</button>`:`<button class="btn primary" data-act="completelist">Mark whole list done</button>`}<button class="btn" data-act="editlist">Edit list</button><button class="btn danger" data-act="dellist">Delete list</button></div>`:""}`;
+}
+async function writeList(c,changes){ const upd={...c,...changes}; delete upd.id; Object.assign(c,changes); render(); await db.doc(`checklists/${c.id}`).set(upd) }
+async function toggleItem(iid,checked){
+  const c=checklists.find(x=>x.id===route.id); if(!c) return;
+  const cy=listCycle(c); const today=todayISO();
+  const items=(c.items||[]).map(it=>it.id===iid?{...it,doneAt:checked?today:""}:it);
+  const allDone=items.length&&items.every(it=>itemDone(it,cy));
+  const ch={items}; if(allDone) ch.completedAt=today; else if(c.completedAt&&isDate(c.completedAt)&&toDate(c.completedAt)>=cy.ws) ch.completedAt="";
+  try{ await writeList(c,ch); if(allDone) toast("All done for the season 👍") }catch(e){ toast("Couldn't save: "+(e.message||e.code)) }
+}
+function listDialog(c){
+  const isNew=!c; c=c||{season:"Fall",startMonth:10,dueMonth:11,items:[]};
+  const mopt=sel=>MONTHS.map((m,i)=>`<option value="${i+1}" ${+sel===i+1?"selected":""}>${m}</option>`).join("");
+  modal(`<h2>${isNew?"New seasonal checklist":"Edit checklist"}</h2><form class="form" style="background:none;padding:0">
+    <label class="full">Name<input name="name" value="${esc(c.name||"")}" placeholder="e.g. Winterize the boat" required></label>
+    <label>Season<select name="season">${SEASONS.map(x=>`<option ${x===c.season?"selected":""}>${x}</option>`).join("")}</select></label>
+    <label>Goes with<select name="vehicleId"><option value="">House / general</option>${activeVehicles().map(v=>`<option value="${esc(v.id)}" ${v.id===c.vehicleId?"selected":""}>${esc(vname(v))}</option>`).join("")}</select></label>
+    <label>Opens in<select name="startMonth">${mopt(c.startMonth)}</select></label>
+    <label>Due by end of<select name="dueMonth">${mopt(c.dueMonth)}</select></label>
+    ${isNew?`<label class="full">Items (one per line)<textarea name="items" rows="6"></textarea></label>`:""}
+    <label class="full">Notes<textarea name="notes" rows="2">${esc(c.notes||"")}</textarea></label>
+    <div class="full editbar"><button class="btn primary" type="submit">${isNew?"Create":"Save"}</button><button class="btn" type="button" data-close>Cancel</button></div></form>`,
+  async f=>{
+    const g=k=>String(f.get(k)||"").trim();
+    const data={...c,name:g("name"),season:g("season"),vehicleId:g("vehicleId"),startMonth:+g("startMonth"),dueMonth:+g("dueMonth"),notes:g("notes")};
+    if(isNew){ data.items=g("items").split("\n").map(x=>x.trim()).filter(Boolean).map((text,i)=>({id:"i"+Date.now().toString(36)+i,text,doneAt:""})); data.order=checklists.length+1; data.createdAt=new Date().toISOString() }
+    delete data.id; const id=c.id||slug(data.name)+"-"+Math.random().toString(36).slice(2,6);
+    try{ await db.doc(`checklists/${id}`).set(data); toast(isNew?"Checklist created":"Saved"); if(isNew) location.hash="s-"+id }catch(e){ toast("Couldn't save: "+(e.message||e.code)); return false }
+  });
+}
+
+/* ---------- settings (Home Assistant app) ---------- */
+function renderSettings(){
+  const s=haStat||{}; const ha=s.ha||{}; const o=s.options||{};
+  const t=v=>v?new Date(v).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"—";
+  const calUrl=s.hostname?`http://${s.hostname}:${s.icsPort||8100}/calendar.ics`:"http://<app hostname>:8100/calendar.ics";
+  $("#app").innerHTML=`${topHTML("")}
+  <div class="sechead"><h2>Settings</h2><span class="note">Version ${esc(s.version||"")}</span></div>
+  <div class="panels">
+    <div class="panel"><h2>Home Assistant</h2><div class="kv">
+      <div class="k">Connection</div><div class="v">${ha.connected?'<span class="badge ok">Connected</span>':`<span class="badge bad">Not connected</span> <span class="note">${esc(ha.error||"")}</span>`}</div>
+      <div class="k">Sensors updated</div><div class="v">${t(ha.last_publish)}</div>
+      <div class="k">Time zone</div><div class="v">${esc(s.timezone||"—")}</div>
+    </div>
+    <p class="note" style="margin-top:12px">Entities you can use in dashboards and automations:</p>
+    <div class="chips"><span class="chip mono">sensor.family_tracker_overdue</span><span class="chip mono">sensor.family_tracker_due_soon</span><span class="chip mono">sensor.family_tracker_low_stock</span><span class="chip mono">sensor.family_tracker_next_due</span><span class="chip mono">event: family_tracker_reminder</span></div>
+    <div class="editbar" style="margin-top:12px"><button class="btn small" data-act="publish">Update sensors now</button></div></div>
+    <div class="panel"><h2>Reminders</h2><div class="kv">
+      <div class="k">Daily check</div><div class="v">${esc(o.reminder_time||"")}</div>
+      <div class="k">Due window</div><div class="v">${esc(o.due_window_days)} days</div>
+      <div class="k">Repeat</div><div class="v">every ${esc(o.repeat_days)} days until updated</div>
+      <div class="k">Phone notify</div><div class="v">${o.notify_service?`<span class="mono">notify.${esc(String(o.notify_service).replace(/^notify\./,""))}</span>`:'<span class="hint">not set</span>'}</div>
+      <div class="k">HA notification</div><div class="v">${o.persistent_notification?"On":"Off"}</div>
+      <div class="k">Last check</div><div class="v">${t(ha.last_reminder)}<div class="note">${esc(ha.last_reminder_result||"")}</div></div>
+    </div>
+    <p class="hint" style="margin-top:10px">Change these on the app's Configuration tab in Settings → Apps → Niemeyer Family Tracker.</p>
+    <div class="editbar"><button class="btn small primary" data-act="remindnow">Send reminder now</button></div></div>
+  </div>
+  <div class="panels">
+    <div class="panel"><h2>Calendar</h2><p class="note">Add the <b>Remote Calendar</b> integration in Home Assistant with this URL to see every due date on the HA calendar:</p>
+      <div class="toolbar"><input id="calurl" readonly value="${esc(calUrl)}" style="flex:1"><button class="btn small" data-act="copycal">Copy</button></div></div>
+    <div class="panel"><h2>Backup</h2><p class="note">Home Assistant backups include this app's data. You can also download everything (including photos) as one file, or restore from one.</p>
+      <div class="editbar"><a class="btn small" href="api/export" download style="text-decoration:none">Download backup</a>
+      <label class="btn small">Import backup…<input type="file" accept=".json,application/json" data-act="importfile" hidden></label></div>
+      <p class="hint">Importing replaces everything in the tracker with the file's contents.</p></div>
+  </div>`;
+}
+async function importBackup(file){
+  let data; try{ data=JSON.parse(await file.text()) }catch{ toast("That file isn't a backup"); return }
+  const n=Object.keys(data.docs||{}).length, ph=Object.keys(data.blobs||{}).length;
+  modal(`<h2>Replace everything with this backup?</h2><p>${n} records and ${ph} photos${data.exportedAt?`, exported ${esc(new Date(data.exportedAt).toLocaleString())}`:""}.</p><p class="note">What's in the tracker now will be replaced.</p><form><div class="editbar"><button class="btn primary" type="submit">Import</button><button class="btn" type="button" data-close>Cancel</button></div></form>`,
+  async()=>{ toast("Importing…"); try{ const r=await FT.req("POST","api/import",data); toast(`Imported ${r.docs} records and ${r.photos} photos`); setTimeout(()=>location.reload(),1200) }catch(e){ toast("Import failed: "+e.message); return false } });
+}
+
+/* ---------- Google Sheet sync (artifact is master) ---------- */
+function sheetRow(v){
+  const n=nextOil(v);
+  const ins=[v.insuranceCarrier,v.insurancePolicy].filter(Boolean).join(" ");
+  return [v.year??"",v.make??"",v.model??"",v.trim??"",v.type??"",v.vin??"",v.plate??"",toSheet(v.regDue),toSheet(v.lastOil),toSheet(n),toSheet(v.battery),v.tireSize??"",toSheet(v.tiresReplacedDate),v.tiresReplacedMiles??"",v.tiresRotatedMiles??"",v.milesPerYear??"",v.mileage??"",toSheet(v.purchaseDate),toSheet(v.endLoan),v.driver??"",ins,v.purchasePrice??""].map(x=>x===undefined||x===null?"":x);
+}
+function buildSheet(){
+  const W=23, blank=()=>Array(W).fill("");
+  const stamp="App sync: "+new Date().toLocaleString();
+  const rows=[[...HEADER,stamp]];
+  const active=vehicles.filter(v=>v.status!=="gone").sort((a,b)=>(a.order??0)-(b.order??0));
+  const gone=vehicles.filter(v=>v.status==="gone").sort((a,b)=>(a.order??0)-(b.order??0));
+  active.forEach(v=>rows.push([...sheetRow(v),""]));
+  rows.push(blank()); const g=blank(); g[0]="GONE!"; rows.push(g);
+  gone.forEach(v=>rows.push([...sheetRow(v),""]));
+  rows.push(blank(),blank());
+  (meta?.footer||[]).forEach(r=>{const x=blank(); r.forEach((c,i)=>x[i]=c); rows.push(x)});
+  const used=rows.length; const total=Math.max(used,meta?.lastRows||used);
+  while(rows.length<total) rows.push(blank());
+  return {rows,used};
+}
+function queueSync(){ /* Google Sheet sync is not used in the Home Assistant app */ }
+async function runSync(){
+  if(!mcp){ syncState={status:"off"}; render(); return }
+  if(syncRunning){ syncPending=true; return }
+  syncRunning=true; syncState={...syncState,status:"busy"}; updateSyncUI();
+  try{
+    const {rows,used}=buildSheet();
+    await mcp.callTool("Google Sheets","update_values",{spreadsheetId:SHEET_ID,range:`'${SHEET_TAB}'!A1:W${rows.length}`,values:rows});
+    if(db&&meta&&meta.lastRows!==used){ meta={...meta,lastRows:used}; await db.doc("meta/sheet").set(meta).catch(()=>{}) }
+    syncState={status:"ok",at:Date.now()};
+  }catch(e){
+    const m={needs_reauth:"Reconnect Google Sheets in Settings → Connectors",server_not_connected:"Add the Google Sheets connector to sync",not_in_manifest:"Sheet sync not allowed for this page",approval_required:"Sheet sync needs your approval — click Retry",blocked_by_policy:"Sheet sync blocked by policy"}[e.code];
+    syncState={status:"error",msg:m||("Sheet sync failed"+(e.code==="tool_error"&&e.message?": "+String(e.message).slice(0,80):"")+" — saved here, click Retry")};
+  }
+  syncRunning=false; updateSyncUI();
+  if(syncPending){ syncPending=false; queueSync() }
+}
+function updateSyncUI(){ const el=document.querySelector(".sync"); if(el) el.outerHTML=syncHTML() }
+
+/* ---------- events & routing ---------- */
+document.addEventListener("click",e=>{
+  const a=e.target.closest("[data-act]"); const g=e.target.closest("[data-go]");
+  if(a&&a.dataset.act==="toggleitem") return;
+  if(a){
+    const act=a.dataset.act;
+    if(act==="home"){ location.hash=""; }
+    else if(act==="garage"){ location.hash="garage" }
+    else if(act==="publish"){ FT.req("POST","api/publish").then(()=>refreshStatus()).then(()=>{toast("Sensors updated"); if(route.view==="settings") render()}).catch(e=>toast("Failed: "+e.message)) }
+    else if(act==="remindnow"){ a.disabled=true; FT.req("POST","api/remind").then(r=>{ toast(r.sent?"Reminder sent":r.due?"Couldn't send — see Last check":"Nothing is due right now"); return refreshStatus() }).then(()=>{ if(route.view==="settings") render() }).catch(e=>{ toast("Failed: "+e.message); a.disabled=false }) }
+    else if(act==="copycal"){ const i=$("#calurl"); i.select(); (navigator.clipboard?navigator.clipboard.writeText(i.value):Promise.reject()).then(()=>toast("Copied"),()=>toast("Select the URL and copy it")) }
+    else if(act==="hometab"){ location.hash="home" }
+    else if(act==="seasontab"){ location.hash="seasonal" }
+    else if(act==="addpart"){ partDialog(null,a.dataset.veh) }
+    else if(act==="editpart"){ partDialog(parts.find(x=>x.id===a.dataset.id)) }
+    else if(act==="delpart"){ const p=parts.find(x=>x.id===a.dataset.id); confirmDelete(p?.name||"this item",()=>db.doc(`parts/${a.dataset.id}`).delete()) }
+    else if(act==="qty"){ e.stopPropagation(); bumpQty(a.dataset.id,+a.dataset.d) }
+    else if(act==="addtask"){ taskDialog() }
+    else if(act==="edittask"){ taskDialog(homeTasks.find(x=>x.id===a.dataset.id)) }
+    else if(act==="deltask"){ const t=homeTasks.find(x=>x.id===a.dataset.id); confirmDelete(t?.name||"this task",async()=>{ await db.doc(`home/${a.dataset.id}`).delete(); if(route.view==="task") location.hash="home" }) }
+    else if(act==="taskdone"){ e.stopPropagation(); quickDone(a.dataset.id) }
+    else if(act==="newlog"){ showAddLog=true; render(); document.getElementById("logform")?.scrollIntoView({behavior:"smooth",block:"center"}) }
+    else if(act==="cancellog"){ showAddLog=false; render() }
+    else if(act==="dellog"){ const t=homeTasks.find(x=>x.id===route.id); const sid=a.dataset.id; confirmDelete("this entry",()=>db.doc(`home/${t.id}/log/${sid}`).delete()) }
+    else if(act==="addequip"){ equipDialog() }
+    else if(act==="delequip"){ const q=equipment.find(x=>x.id===a.dataset.id); confirmDelete(q?.name||"this equipment",()=>db.doc(`equipment/${a.dataset.id}`).delete()) }
+    else if(act==="addlist"){ listDialog() }
+    else if(act==="editlist"){ listDialog(checklists.find(x=>x.id===route.id)) }
+    else if(act==="dellist"){ const c=checklists.find(x=>x.id===route.id); confirmDelete(c?.name||"this checklist",async()=>{ await db.doc(`checklists/${c.id}`).delete(); location.hash="seasonal" }) }
+    else if(act==="completelist"){ const c=checklists.find(x=>x.id===route.id); const t=todayISO(), cy=listCycle(c); writeList(c,{completedAt:t,items:(c.items||[]).map(it=>itemDone(it,cy)?it:{...it,doneAt:t})}).then(()=>toast("Marked done for the season")).catch(err=>toast("Failed: "+(err.message||err.code))) }
+    else if(act==="reopenlist"){ const c=checklists.find(x=>x.id===route.id); writeList(c,{completedAt:"",items:(c.items||[]).map(it=>({...it,doneAt:""}))}).catch(err=>toast("Failed: "+(err.message||err.code))) }
+    else if(act==="delitem"){ const c=checklists.find(x=>x.id===route.id); writeList(c,{items:(c.items||[]).filter(it=>it.id!==a.dataset.id)}).catch(err=>toast("Failed: "+(err.message||err.code))) }
+    else if(act==="edit"){ editing=true; render() }
+    else if(act==="cancel"){ editing=false; render() }
+    else if(act==="save"){ saveEdits() }
+    else if(act==="newservice"){ showAddService=true; render(); document.getElementById("svcform")?.scrollIntoView({behavior:"smooth",block:"center"}) }
+    else if(act==="cancelservice"){ showAddService=false; render() }
+    else if(act==="delservice"){ delService(a.dataset.id) }
+    else if(act==="sync"){ runSync() }
+    else if(act==="add"){ addVehicleDialog() }
+    else if(act==="gone"){ goneDialog() }
+    else if(act==="reactivate"){ reactivate() }
+    else if(act==="rmphoto"){ removePhoto() }
+    return;
+  }
+  if(g){ location.hash="v-"+g.dataset.go; return }
+  const ed=e.target.closest("[data-edit]"); if(ed&&canWrite){ partDialog(parts.find(x=>x.id===ed.dataset.edit)); return }
+  const eq=e.target.closest("[data-equip]"); if(eq&&canWrite){ equipDialog(equipment.find(x=>x.id===eq.dataset.equip)); return }
+  const h=e.target.closest("[data-hash]"); if(h&&!e.target.closest("a")){ location.hash=h.dataset.hash }
+});
+document.addEventListener("input",e=>{ if(e.target.id==="pq"){ pf.q=e.target.value; refreshPartsTable() } });
+document.addEventListener("change",e=>{
+  if(e.target.matches('input[data-act="photo"]')&&e.target.files[0]) uploadPhoto(e.target.files[0]);
+  if(e.target.matches('input[data-act="importfile"]')&&e.target.files[0]){ importBackup(e.target.files[0]); e.target.value="" }
+  if(e.target.id==="pveh"){ pf.veh=e.target.value; refreshPartsTable() }
+  if(e.target.id==="pkind"){ pf.kind=e.target.value; refreshPartsTable() }
+  if(e.target.id==="plow"){ pf.low=e.target.checked; refreshPartsTable() }
+  if(e.target.dataset&&e.target.dataset.act==="toggleitem"){ toggleItem(e.target.dataset.id,e.target.checked) }
+  if(e.target.name==="category"){ const w=document.getElementById("newregwrap"); if(w) w.style.display=e.target.value==="Registration renewal"?"flex":"none" }
+});
+function imageFromList(items){ for(const it of items||[]){ const f=it.kind?(it.kind==="file"&&it.type.startsWith("image/")?it.getAsFile():null):(it.type&&it.type.startsWith("image/")?it:null); if(f) return f } return null }
+document.addEventListener("paste",e=>{
+  if(route.view!=="vehicle"||!assets||!canWrite) return;
+  const f=imageFromList(e.clipboardData&&e.clipboardData.items);
+  if(f){ e.preventDefault(); uploadPhoto(f); return }
+  const t=e.target; const inField=t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA");
+  if(!inField&&e.clipboardData&&/<img/i.test(e.clipboardData.getData("text/html")||"")) toast("That copied a web link, not the image. Right-click the picture → Copy image, then paste.");
+});
+document.addEventListener("dragover",e=>{ const ph=e.target.closest&&e.target.closest("#heroph"); if(ph&&assets&&canWrite){ e.preventDefault(); ph.classList.add("drop") } });
+document.addEventListener("dragleave",e=>{ const ph=e.target.closest&&e.target.closest("#heroph"); if(ph) ph.classList.remove("drop") });
+document.addEventListener("drop",e=>{ const ph=e.target.closest&&e.target.closest("#heroph"); if(!ph||!assets||!canWrite) return; e.preventDefault(); ph.classList.remove("drop"); const f=imageFromList(e.dataTransfer&&e.dataTransfer.files); if(f) uploadPhoto(f); else toast("Drop an image file") });
+document.addEventListener("submit",e=>{
+  if(e.target.id==="svcform"){ e.preventDefault(); saveService(e.target) }
+  if(e.target.id==="logform"){ e.preventDefault(); saveLog(e.target) }
+  if(e.target.id==="additem"){ e.preventDefault(); const c=checklists.find(x=>x.id===route.id); const text=String(new FormData(e.target).get("text")||"").trim(); if(c&&text) writeList(c,{items:[...(c.items||[]),{id:"i"+Date.now().toString(36),text,doneAt:""}]}).then(()=>document.querySelector('#additem input')?.focus()).catch(err=>toast("Failed: "+(err.message||err.code))) }
+});
+function applyRoute(){
+  const h=location.hash.replace(/^#/,"");
+  const prev=route.id;
+  route=h.startsWith("v-")?{view:"vehicle",id:h.slice(2)}:h.startsWith("h-")?{view:"task",id:h.slice(2)}:h.startsWith("s-")?{view:"list",id:h.slice(2)}:["garage","parts","home","seasonal","settings"].includes(h)?{view:h}:{view:"overview"};
+  if(route.id!==prev){ editing=false; showAddService=false; showAddLog=false; subscribeService(); subscribeLog() }
+  document.querySelector(".modal")?.remove();
+  render(); window.scrollTo(0,0);
+}
+window.addEventListener("hashchange",applyRoute);
+function subscribeLog(){
+  if(logUnsub){ logUnsub(); logUnsub=null }
+  logList=[]; logLoaded=false;
+  if(!db||route.view!=="task") return;
+  logUnsub=db.collection(`home/${route.id}/log`).orderBy("date","desc").onSnapshot(s=>{ logList=s.docs.map(d=>({id:d.id,...d.data()})); logLoaded=true; if(!document.querySelector(".modal")&&!document.getElementById("logform")) render() },()=>{ logLoaded=true; render() });
+}
+function subscribeService(){
+  if(serviceUnsub){ serviceUnsub(); serviceUnsub=null }
+  serviceList=[]; serviceLoaded=false;
+  if(!db||route.view!=="vehicle") return;
+  serviceUnsub=db.collection(`vehicles/${route.id}/service`).orderBy("date","desc").onSnapshot(s=>{
+    serviceList=s.docs.map(d=>({id:d.id,...d.data()})); serviceLoaded=true; if(!editing) render(); else { const l=document.querySelector(".log"); if(l){const cv=vehicles.find(x=>x.id===route.id); l.innerHTML=serviceList.map(e=>entryHTML(e,cv)).join("")||'<div class="note">No service entries yet.</div>'} }
+  },()=>{ serviceLoaded=true; render() });
+}
+
+/* ---------- boot ---------- */
+(async()=>{
+  applyRoute();
+  db=await claude.use("db");
+  if(!db){ loadErr="Can't reach the tracker service."; render(); return }
+  const user=await claude.use("user");
+  if(user){ try{ const w=await user.can("data.write"); if(w===false) canWrite=false }catch{} }
+  claude.use("assets").then(a=>{ assets=a; render() });
+  refreshStatus(); setInterval(refreshStatus,60000);
+  const timer=setTimeout(()=>{ staleNote=true; render() },10000);
+  db.doc("meta/sheet").onSnapshot(s=>{ meta=s.exists?s.data():{footer:[],lastRows:0} },()=>{});
+  db.collection("vehicles").onSnapshot(s=>{
+    vehicles=s.docs.map(d=>({id:d.id,...d.data()}));
+    if(!s.metadata.fromCache){ clearTimeout(timer); staleNote=false }
+    loaded=true;
+    if(!editing && !document.querySelector(".modal")) render();
+  },err=>{ clearTimeout(timer); loaded=true; loadErr=null; staleNote=true; render() });
+  if(route.view==="vehicle") subscribeService();
+  if(route.view==="task") subscribeLog();
+  const quietRender=()=>{ if(!loaded||editing||document.querySelector(".modal")) return; if(route.view==="parts"&&document.activeElement&&document.activeElement.id==="pq") return refreshPartsTable(); render() };
+  db.collection("parts").onSnapshot(s=>{ parts=s.docs.map(d=>({id:d.id,...d.data()})); quietRender() },()=>{});
+  db.collection("home").onSnapshot(s=>{ homeTasks=s.docs.map(d=>({id:d.id,...d.data()})); quietRender() },()=>{});
+  db.collection("equipment").onSnapshot(s=>{ equipment=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.area).localeCompare(String(b.area))||String(a.name).localeCompare(String(b.name))); quietRender() },()=>{});
+  db.collection("checklists").onSnapshot(s=>{ checklists=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.order??0)-(b.order??0)); quietRender() },()=>{});
+})();
+</script>
+</body>
+</html>

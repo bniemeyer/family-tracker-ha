@@ -1,0 +1,4 @@
+*.json
+!repository.json
+__pycache__/
+data/
