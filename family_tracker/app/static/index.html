@@ -960,9 +960,17 @@ function renderSettings(){
       <div class="toolbar"><input id="calurl" readonly value="${esc(calUrl)}" style="flex:1"><button class="btn small" data-act="copycal">Copy</button></div></div>
     <div class="panel"><h2>Backup</h2><p class="note">Home Assistant backups include this app's data. You can also download everything (including photos) as one file, or restore from one.</p>
       <div class="editbar"><a class="btn small" href="api/export" download style="text-decoration:none">Download backup</a>
+      <label class="btn small">Merge from file…<input type="file" accept=".json,application/json" data-act="mergefile" hidden></label>
       <label class="btn small">Import backup…<input type="file" accept=".json,application/json" data-act="importfile" hidden></label></div>
-      <p class="hint">Importing replaces everything in the tracker with the file's contents.</p></div>
+      <p class="hint"><b>Merge</b> adds new records and leaves everything else alone. <b>Import</b> replaces everything with the backup's contents.</p></div>
   </div>`;
+}
+async function mergeFile(file){
+  let data; try{ data=JSON.parse(await file.text()) }catch{ toast("That file isn't a merge file"); return }
+  if(data.format!=="family-tracker-merge"){ toast(data.format==="family-tracker-backup"?"That's a full backup — use Import backup":"That isn't a merge file"); return }
+  const a=Object.keys(data.add||{}).length, u=Object.keys(data.patch||{}).length;
+  modal(`<h2>Merge this file?</h2><p>${esc(data.title||"")}</p><p>${a} new record${a===1?"":"s"}${u?`, ${u} update${u===1?"":"s"}`:""}. Nothing else changes; records that already exist are skipped.</p><form><div class="editbar"><button class="btn primary" type="submit">Merge</button><button class="btn" type="button" data-close>Cancel</button></div></form>`,
+  async()=>{ try{ const r=await FT.req("POST","api/merge",data); toast(`Added ${r.added}${r.patched?`, updated ${r.patched}`:""}${r.skipped?`, ${r.skipped} already there`:""}`) }catch(e){ toast("Merge failed: "+e.message); return false } });
 }
 async function importBackup(file){
   let data; try{ data=JSON.parse(await file.text()) }catch{ toast("That file isn't a backup"); return }
@@ -1065,6 +1073,7 @@ document.addEventListener("input",e=>{ if(e.target.id==="pq"){ pf.q=e.target.val
 document.addEventListener("change",e=>{
   if(e.target.matches('input[data-act="photo"]')&&e.target.files[0]) uploadPhoto(e.target.files[0]);
   if(e.target.matches('input[data-act="importfile"]')&&e.target.files[0]){ importBackup(e.target.files[0]); e.target.value="" }
+  if(e.target.matches('input[data-act="mergefile"]')&&e.target.files[0]){ mergeFile(e.target.files[0]); e.target.value="" }
   if(e.target.id==="pveh"){ pf.veh=e.target.value; refreshPartsTable() }
   if(e.target.id==="pkind"){ pf.kind=e.target.value; refreshPartsTable() }
   if(e.target.id==="plow"){ pf.low=e.target.checked; refreshPartsTable() }
