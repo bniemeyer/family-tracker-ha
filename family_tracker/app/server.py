@@ -27,7 +27,7 @@ try:
 except ImportError:  # pragma: no cover
     ZoneInfo = None
 
-VERSION = "1.1.0"
+VERSION = "1.0.0"
 DATA_DIR = os.environ.get("FT_DATA", "/data")
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 BLOB_DIR = os.path.join(DATA_DIR, "blobs")
@@ -743,26 +743,6 @@ class Handler(BaseHTTPRequestHandler):
                 STORE.replace_all(data["docs"])
                 log(f"imported {len(data['docs'])} documents and {n_blobs} photos")
                 return self.send(200, {"ok": True, "docs": len(data["docs"]), "photos": n_blobs})
-            if path == "/api/merge":
-                data = self.jbody()
-                if not isinstance(data, dict) or data.get("format") != "family-tracker-merge":
-                    raise ValueError("That isn't a Family Tracker merge file")
-                added, skipped, patched = [], [], []
-                for p_, d_ in (data.get("add") or {}).items():
-                    if STORE.get(p_):
-                        skipped.append(p_)
-                    else:
-                        STORE.set(p_, d_)
-                        added.append(p_)
-                for p_, fields in (data.get("patch") or {}).items():
-                    cur = STORE.get(p_)
-                    if cur and isinstance(fields, dict):
-                        STORE.set(p_, {**cur["data"], **fields})
-                        patched.append(p_)
-                for bid, b in (data.get("blobs") or {}).items():
-                    save_blob(base64.b64decode(b["data"]), b.get("type", "image/jpeg"), bid)
-                log(f"merged: {len(added)} added, {len(skipped)} already there, {len(patched)} updated")
-                return self.send(200, {"ok": True, "added": len(added), "skipped": len(skipped), "patched": len(patched)})
             return self.send(404, {"error": "not found"})
         except ValueError as e:
             return self.send(400, {"error": str(e)})
