@@ -1,3 +1,6 @@
+## 1.5.1
+- Header shows the app version in small print next to the name.
+
 ## 1.5.0
 - New **Projects** tab: Project → Heading → Task → Subtask, with status, target date, budget and notes.
 - Tasks: due date, assigned person, estimated/actual cost, notes and a link; subtasks roll up into their task.
