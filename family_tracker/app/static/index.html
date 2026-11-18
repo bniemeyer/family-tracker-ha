@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Niemeyer Family Tracker</title>
+<script>/* apply the last-seen appearance before first paint; the shared setting in meta/appearance wins once loaded */
+(function(){var a=null;try{a=JSON.parse(localStorage.getItem("ft-appearance")||"null")}catch(e){}
+var r=document.documentElement;r.dataset.theme=a&&a.theme==="classic"?"classic":"glass";r.dataset.mode=a&&(a.mode==="light"||a.mode==="dark")?a.mode:"auto"})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12,11 +15,15 @@
   --line:#e2dfd7; --accent:#d9480f; --accent-ink:#fff;
   --ok:#2f7d4f; --ok-bg:#e3f2e8; --soon:#a86400; --soon-bg:#fff1d6; --bad:#c22a2a; --bad-bg:#fde4e2; --na:#6b7078; --na-bg:#eceae5;
   --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.05);
+  color-scheme:light;
 }
+/* Classic dark: device setting in Auto mode, or forced Dark */
 @media (prefers-color-scheme:dark){
-  :root{--bg:#141517;--panel:#1d1f22;--panel2:#24272b;--ink:#eceae5;--ink2:#a8adb5;--ink3:#7a8089;--line:#2f3237;
+  :root:not([data-mode=light]){color-scheme:dark;--bg:#141517;--panel:#1d1f22;--panel2:#24272b;--ink:#eceae5;--ink2:#a8adb5;--ink3:#7a8089;--line:#2f3237;
   --ok:#5cc489;--ok-bg:#183326;--soon:#f0b44c;--soon-bg:#3a2c12;--bad:#ff7a70;--bad-bg:#3d1b19;--na:#9aa0a8;--na-bg:#2a2d31;--shadow:none}
 }
+:root[data-mode=dark]{color-scheme:dark;--bg:#141517;--panel:#1d1f22;--panel2:#24272b;--ink:#eceae5;--ink2:#a8adb5;--ink3:#7a8089;--line:#2f3237;
+  --ok:#5cc489;--ok-bg:#183326;--soon:#f0b44c;--soon-bg:#3a2c12;--bad:#ff7a70;--bad-bg:#3d1b19;--na:#9aa0a8;--na-bg:#2a2d31;--shadow:none}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Barlow,system-ui,sans-serif}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -169,6 +176,146 @@ table.t tr.clk:hover td{background:var(--panel2)}
 .rowlist .r .what b{font-weight:600}
 .rowlist .r .what .note{display:block}
 .seclabel{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin:22px 0 8px;font-weight:600}
+/* segmented control (Settings → Appearance) */
+.kv.appear{grid-template-columns:auto 1fr}
+.seg{display:inline-flex;flex-wrap:nowrap;white-space:nowrap;max-width:100%;overflow-x:auto;gap:2px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.seg button{border:0;background:transparent;border-radius:7px;padding:5px 12px;font-weight:600;font-size:14px;color:var(--ink2);cursor:pointer}
+.seg button:hover{color:var(--ink)}
+.seg button.on{background:var(--ink);color:var(--bg)}
+.seg button:disabled{cursor:default;opacity:.6}
+
+/* ================= Frosted Glass theme (matches HA "Frosted Glass" / "Frosted Glass Dark" used on Controls) ================= */
+:root[data-theme=glass]{
+  color-scheme:light;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
+  --monofont:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+  --wall:url("https://cdn.jsdelivr.net/gh/wessamlauf/homeassistant-frosted-glass-themes@refs/heads/main/themes/frosted-glass-light-background.jpg");
+  --bg:rgb(254,244,242); --ink:rgba(19,21,54,.98); --ink2:rgba(19,21,54,.8); --ink3:rgba(19,21,54,.45); --line:rgba(19,21,54,.12);
+  --accent:rgb(106,116,211); --accent-rgb:106,116,211; --accent-text:rgb(78,88,190); --accent-ink:#fff;
+  --edge:rgba(255,255,255,.3); --blur:blur(8px) saturate(1.25);
+  --inset:3px 3px .5px -3.5px rgba(255,255,255,.30) inset,-2px -2px .5px -2px rgba(255,255,255,.30) inset,0 0 8px 1px rgba(255,255,255,.10) inset,0 0 2px 0 rgba(0,0,0,.10);
+  --depth:0 10px 32px rgba(21,25,45,.12),0 2px 8px rgba(21,25,45,.08);
+  --popup:rgba(254,244,242,.35); --scrim:rgba(0,0,0,.38); --menu:rgb(254,244,242); --panel-solid:rgba(254,244,242,.94);
+  --panel2:rgba(255,255,255,.32); --btn:rgba(255,255,255,.3); --btn-hover:rgba(255,255,255,.45); --form:rgba(255,255,255,.24); --seg-on:rgba(255,255,255,.6);
+  /* theme feedback colors are pastel; darkened here so they stay readable as text on the light glass */
+  --ok:rgb(28,122,70); --ok-bg:rgba(118,214,152,.32); --soon:rgb(138,92,0); --soon-bg:rgba(255,219,117,.42); --bad:rgb(178,36,72); --bad-bg:rgba(234,114,135,.26);
+  --na:rgba(19,21,54,.75); --na-bg:rgba(255,255,255,.32); --contrast-bg:rgba(254,244,242,.95); --contrast-outline:rgba(19,21,54,.5);
+  --panel:transparent; --radius:18px; --shadow:var(--inset),var(--depth);
+}
+@media (prefers-color-scheme:dark){
+  :root[data-theme=glass]:not([data-mode=light]){color-scheme:dark;
+    --wall:url("https://cdn.jsdelivr.net/gh/wessamlauf/homeassistant-frosted-glass-themes@refs/heads/main/themes/frosted-glass-dark-background.jpg");
+    --bg:rgb(2,6,11); --ink:rgba(234,235,238,.98); --ink2:rgba(234,235,238,.8); --ink3:rgba(234,235,238,.45); --line:rgba(90,111,128,.28);
+    --accent:rgb(122,162,190); --accent-rgb:122,162,190; --accent-text:rgb(150,186,210);
+    --edge:rgba(234,235,238,.22); --blur:blur(10px) saturate(1.25);
+    --inset:3px 3px .5px -3.5px rgba(255,255,255,.30) inset,-2px -2px .5px -2px rgba(255,255,255,.20) inset,0 0 8px 1px rgba(255,255,255,.06) inset,0 0 2px 0 rgba(0,0,0,.18);
+    --depth:0 14px 38px rgba(0,0,0,.34),0 2px 10px rgba(0,0,0,.24);
+    --popup:rgba(2,6,11,.35); --scrim:rgba(0,0,0,.5); --menu:rgb(2,6,11); --panel-solid:rgba(12,20,30,.92);
+    --panel2:rgba(255,255,255,.09); --btn:rgba(255,255,255,.08); --btn-hover:rgba(255,255,255,.14); --form:rgba(12,20,30,.38); --seg-on:rgba(255,255,255,.16);
+    --ok:rgb(118,214,152); --ok-bg:rgba(118,214,152,.18); --soon:rgb(255,219,117); --soon-bg:rgba(255,219,117,.16); --bad:rgb(234,114,135); --bad-bg:rgba(234,114,135,.2);
+    --na:rgba(234,235,238,.8); --na-bg:rgba(255,255,255,.09); --contrast-bg:rgba(2,6,11,.92); --contrast-outline:rgba(234,235,238,.6);}
+}
+:root[data-theme=glass][data-mode=dark]{color-scheme:dark;
+    --wall:url("https://cdn.jsdelivr.net/gh/wessamlauf/homeassistant-frosted-glass-themes@refs/heads/main/themes/frosted-glass-dark-background.jpg");
+    --bg:rgb(2,6,11); --ink:rgba(234,235,238,.98); --ink2:rgba(234,235,238,.8); --ink3:rgba(234,235,238,.45); --line:rgba(90,111,128,.28);
+    --accent:rgb(122,162,190); --accent-rgb:122,162,190; --accent-text:rgb(150,186,210);
+    --edge:rgba(234,235,238,.22); --blur:blur(10px) saturate(1.25);
+    --inset:3px 3px .5px -3.5px rgba(255,255,255,.30) inset,-2px -2px .5px -2px rgba(255,255,255,.20) inset,0 0 8px 1px rgba(255,255,255,.06) inset,0 0 2px 0 rgba(0,0,0,.18);
+    --depth:0 14px 38px rgba(0,0,0,.34),0 2px 10px rgba(0,0,0,.24);
+    --popup:rgba(2,6,11,.35); --scrim:rgba(0,0,0,.5); --menu:rgb(2,6,11); --panel-solid:rgba(12,20,30,.92);
+    --panel2:rgba(255,255,255,.09); --btn:rgba(255,255,255,.08); --btn-hover:rgba(255,255,255,.14); --form:rgba(12,20,30,.38); --seg-on:rgba(255,255,255,.16);
+    --ok:rgb(118,214,152); --ok-bg:rgba(118,214,152,.18); --soon:rgb(255,219,117); --soon-bg:rgba(255,219,117,.16); --bad:rgb(234,114,135); --bad-bg:rgba(234,114,135,.2);
+    --na:rgba(234,235,238,.8); --na-bg:rgba(255,255,255,.09); --contrast-bg:rgba(2,6,11,.92); --contrast-outline:rgba(234,235,238,.6);}
+
+/* wallpaper: a fixed layer (background-attachment:fixed is ignored on iOS) */
+[data-theme=glass] body{background:transparent;font:15px/1.45 var(--font);-webkit-font-smoothing:antialiased}
+[data-theme=glass] body::before{content:"";position:fixed;inset:0;z-index:-1;background:var(--bg) var(--wall) center/cover no-repeat}
+[data-theme=glass] .mono{font-family:var(--monofont)}
+[data-theme=glass] a{color:var(--accent-text)}
+[data-theme=glass] a.tile{color:inherit}
+[data-theme=glass] a.btn{color:var(--ink)}
+
+/* typography: system font, normal case, medium-weight headings (theme heading weight 500) */
+[data-theme=glass] :is(h1,h2,h3){font-family:var(--font);text-transform:none;letter-spacing:0;font-weight:500}
+[data-theme=glass] .top h1{font-size:29px;font-weight:700}
+[data-theme=glass] .top h1 span{color:var(--accent-text)}
+[data-theme=glass] .sechead h2{font-size:20px;font-weight:500}
+[data-theme=glass] .panel h2{font-size:15px;font-weight:500;color:var(--ink)}
+[data-theme=glass] .cb h3{font-size:18px}
+[data-theme=glass] .tile h3{font-size:18px}
+[data-theme=glass] .hinfo h1{font-size:29px;font-weight:700}
+[data-theme=glass] :is(.stat .n,.tile .big){font-family:var(--font);font-weight:500}
+[data-theme=glass] .stat .n{font-size:33px}
+[data-theme=glass] .tile .big{font-size:25px}
+[data-theme=glass] :is(.stat .l,.st .k,table.t th,.seclabel,.cat){text-transform:none;letter-spacing:0}
+[data-theme=glass] .stat .l{font-size:14px}
+[data-theme=glass] .st .k{font-size:12px}
+[data-theme=glass] table.t th{font-size:12px;font-weight:500}
+[data-theme=glass] .seclabel{font-size:14px;font-weight:500;color:var(--ink2)}
+[data-theme=glass] .cat{color:var(--accent-text);font-size:12px;font-weight:500}
+[data-theme=glass] details.gone summary{font-family:var(--font);font-size:18px;font-weight:500;text-transform:none}
+
+/* frosted surfaces: clear tint + blur, 0.5px light edge, 18px corners, reflection + depth shadow */
+[data-theme=glass] :is(.stat,.upcoming,.card,.panel,.tile,.tablewrap,.rowlist,.box,.nav,.toast,.banner){
+  background:var(--panel);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border:.5px solid var(--edge);box-shadow:var(--shadow)}
+[data-theme=glass] :is(.stat,.upcoming,.card,.panel,.tile,.tablewrap,.rowlist){border-radius:var(--radius)}
+[data-theme=glass] :is(.card,.tile):hover{border-color:var(--edge);background:var(--btn)}
+[data-theme=glass] .ph{background:var(--panel2)}
+[data-theme=glass] .hero .ph{border-radius:var(--radius);border:.5px solid var(--edge);box-shadow:var(--shadow)}
+[data-theme=glass] .st{background:var(--panel2);border:.5px solid var(--edge);border-radius:12px}
+[data-theme=glass] .form{background:var(--panel2);border-radius:14px}
+[data-theme=glass] .checkgrid{background:var(--form);border-color:transparent;border-radius:12px}
+[data-theme=glass] .chip{background:var(--na-bg);color:var(--ink2)}
+[data-theme=glass] .bar{background:var(--panel2)}
+[data-theme=glass] .banner{border-radius:14px;color:var(--soon);background:var(--soon-bg)}
+[data-theme=glass] .banner.bad{color:var(--bad);background:var(--bad-bg)}
+/* rows inside glass are not blurred; quiet hover fill */
+[data-theme=glass] :is(.upcoming .row,.rowlist .r):hover,[data-theme=glass] table.t tr.clk:hover td{background:var(--panel2)}
+[data-theme=glass] :is(.upcoming .row+.row,.rowlist .r,.entry,.cl li),[data-theme=glass] table.t :is(td,th){border-color:var(--line)}
+[data-theme=glass] table.t tr.low td{background:var(--soon-bg)}
+
+/* controls */
+[data-theme=glass] .btn{border:.5px solid var(--edge);border-radius:999px;padding:7px 15px;background:var(--btn);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);font-weight:500}
+[data-theme=glass] .btn.small{padding:4px 11px}
+[data-theme=glass] .btn:hover{border-color:var(--edge);background:var(--btn-hover)}
+[data-theme=glass] .btn.primary{background:rgba(var(--accent-rgb),.34);border-color:rgba(var(--accent-rgb),.6);color:var(--ink)}
+[data-theme=glass] .btn.primary:hover{background:rgba(var(--accent-rgb),.46)}
+[data-theme=glass] .btn.ghost{background:transparent;border-color:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
+[data-theme=glass] .btn.ghost:hover{background:var(--panel2)}
+[data-theme=glass] .btn.danger{color:var(--bad)}
+[data-theme=glass] .subnav a{color:var(--ink)}
+[data-theme=glass] .subnav a.primary{color:var(--ink)}
+[data-theme=glass] :is(.kv,.form) :is(input,select,textarea){border:.5px solid transparent;border-radius:12px;background:var(--form)}
+[data-theme=glass] .toolbar :is(input,select){border:.5px solid var(--edge);border-radius:12px;background:var(--form);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);padding:7px 12px}
+[data-theme=glass] :is(.kv,.form,.toolbar) :is(input,select,textarea):focus{outline:2px solid var(--accent);outline-offset:-1px}
+[data-theme=glass] select option{background:var(--menu);color:var(--ink)}
+[data-theme=glass] .cl li input[type=checkbox]{accent-color:var(--accent)}
+[data-theme=glass] .nav{display:inline-flex;padding:4px;gap:2px;border-radius:var(--radius)}
+[data-theme=glass] .nav a{border:0;border-radius:14px;padding:6px 14px;color:var(--ink2);font-weight:500}
+[data-theme=glass] .nav a:hover{background:var(--panel2);color:var(--ink)}
+[data-theme=glass] .nav a.on{background:var(--seg-on);color:var(--ink)}
+[data-theme=glass] .nav a .cnt{background:var(--bad);color:rgb(2,6,11)}
+[data-theme=glass] .nav a .cnt.soon{background:var(--soon);color:rgb(2,6,11)}
+[data-theme=glass][data-mode=light] .nav a .cnt,[data-theme=glass][data-mode=light] .nav a .cnt.soon{color:#fff}
+[data-theme=glass] .seg{border:.5px solid var(--edge);border-radius:999px;background:var(--form)}
+[data-theme=glass] .seg button{border-radius:999px;font-weight:500}
+[data-theme=glass] .seg button.on{background:rgba(var(--accent-rgb),.34);color:var(--ink)}
+[data-theme=glass] .bar i{background:var(--accent)}
+[data-theme=glass] .dot.ok{background:var(--ok)}[data-theme=glass] .dot.busy{background:var(--soon)}[data-theme=glass] .dot.bad{background:var(--bad)}
+
+/* dialogs & toast: popup surface with heavier blur over a dark scrim */
+[data-theme=glass] .modal{background:var(--scrim)}
+[data-theme=glass] .modal .box{background:var(--popup);-webkit-backdrop-filter:blur(18px) saturate(1.2);backdrop-filter:blur(18px) saturate(1.2);border-radius:28px;box-shadow:var(--inset),0 24px 64px rgba(0,0,0,.48),0 4px 18px rgba(0,0,0,.28)}
+[data-theme=glass] .toast{background:var(--popup);-webkit-backdrop-filter:blur(18px) saturate(1.2);backdrop-filter:blur(18px) saturate(1.2);color:var(--ink);border-radius:999px;padding:10px 18px}
+[data-theme=glass] .ph .plate{font-family:var(--monofont)}
+
+/* no blur support, or the user asked for more contrast: near-solid surfaces */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  [data-theme=glass] :is(.stat,.upcoming,.card,.panel,.tile,.tablewrap,.rowlist,.nav,.toast,.box){background:var(--panel-solid)}
+}
+@media (prefers-contrast:more){
+  [data-theme=glass] :is(.stat,.upcoming,.card,.panel,.tile,.tablewrap,.rowlist,.box,.nav){background:var(--contrast-bg)!important;border:1px solid var(--contrast-outline)!important}
+}
 </style>
 </head>
 <body>
@@ -928,6 +1075,16 @@ function listDialog(c){
   });
 }
 
+/* ---------- appearance (household-wide, stored in meta/appearance) ---------- */
+const THEMES={glass:"Frosted Glass",classic:"Classic"}, MODES={auto:"Auto",light:"Light",dark:"Dark"};
+let appearance={theme:document.documentElement.dataset.theme||"glass",mode:document.documentElement.dataset.mode||"auto"};
+function applyAppearance(a){
+  appearance={theme:THEMES[a&&a.theme]?a.theme:"glass",mode:MODES[a&&a.mode]?a.mode:"auto"};
+  const r=document.documentElement; r.dataset.theme=appearance.theme; r.dataset.mode=appearance.mode;
+  try{ localStorage.setItem("ft-appearance",JSON.stringify(appearance)) }catch{}
+}
+function segHTML(k,opts){ return `<div class="seg" role="group">${Object.entries(opts).map(([v,l])=>`<button type="button" data-act="appearance" data-k="${k}" data-v="${v}" class="${appearance[k]===v?"on":""}" aria-pressed="${appearance[k]===v}"${canWrite?"":" disabled"}>${l}</button>`).join("")}</div>` }
+
 /* ---------- settings (Home Assistant app) ---------- */
 function renderSettings(){
   const s=haStat||{}; const ha=s.ha||{}; const o=s.options||{};
@@ -956,6 +1113,11 @@ function renderSettings(){
     <div class="editbar"><button class="btn small primary" data-act="remindnow">Send reminder now</button></div></div>
   </div>
   <div class="panels">
+    <div class="panel"><h2>Appearance</h2><div class="kv appear">
+      <div class="k">Theme</div><div class="v">${segHTML("theme",THEMES)}</div>
+      <div class="k">Mode</div><div class="v">${segHTML("mode",MODES)}</div>
+    </div>
+    <p class="hint" style="margin-top:10px">Applies to everyone using the tracker. Auto follows each device's light/dark setting.</p></div>
     <div class="panel"><h2>Calendar</h2><p class="note">Add the <b>Remote Calendar</b> integration in Home Assistant with this URL to see every due date on the HA calendar:</p>
       <div class="toolbar"><input id="calurl" readonly value="${esc(calUrl)}" style="flex:1"><button class="btn small" data-act="copycal">Copy</button></div></div>
     <div class="panel"><h2>Backup</h2><p class="note">Home Assistant backups include this app's data. You can also download everything (including photos) as one file, or restore from one.</p>
@@ -1017,7 +1179,12 @@ document.addEventListener("click",e=>{
   if(a&&a.dataset.act==="toggleitem") return;
   if(a){
     const act=a.dataset.act;
-    if(act==="home"){ location.hash=""; }
+    if(act==="appearance"){
+      const prev=appearance, next={...appearance,[a.dataset.k]:a.dataset.v};
+      applyAppearance(next); if(route.view==="settings") render();
+      db.doc("meta/appearance").set(appearance).catch(err=>{ applyAppearance(prev); if(route.view==="settings") render(); toast("Couldn't save: "+(err.message||err.code)) });
+    }
+    else if(act==="home"){ location.hash=""; }
     else if(act==="garage"){ location.hash="garage" }
     else if(act==="publish"){ FT.req("POST","api/publish").then(()=>refreshStatus()).then(()=>{toast("Sensors updated"); if(route.view==="settings") render()}).catch(e=>toast("Failed: "+e.message)) }
     else if(act==="remindnow"){ a.disabled=true; FT.req("POST","api/remind").then(r=>{ toast(r.sent?"Reminder sent":r.due?"Couldn't send — see Last check":"Nothing is due right now"); return refreshStatus() }).then(()=>{ if(route.view==="settings") render() }).catch(e=>{ toast("Failed: "+e.message); a.disabled=false }) }
@@ -1122,6 +1289,10 @@ function subscribeService(){
   refreshStatus(); setInterval(refreshStatus,60000);
   const timer=setTimeout(()=>{ staleNote=true; render() },10000);
   db.doc("meta/sheet").onSnapshot(s=>{ meta=s.exists?s.data():{footer:[],lastRows:0} },()=>{});
+  db.doc("meta/appearance").onSnapshot(s=>{
+    const before=appearance.theme+appearance.mode; applyAppearance(s.exists?s.data():null);
+    if(route.view==="settings"&&before!==appearance.theme+appearance.mode&&!document.querySelector(".modal")) render();
+  },()=>{});
   db.collection("vehicles").onSnapshot(s=>{
     vehicles=s.docs.map(d=>({id:d.id,...d.data()}));
     if(!s.metadata.fromCache){ clearTimeout(timer); staleNote=false }
