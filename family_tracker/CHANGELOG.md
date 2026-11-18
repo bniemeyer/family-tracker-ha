@@ -1,3 +1,6 @@
+## 1.3.1
+- Appliances moved under Home: Home now has Tasks & systems | Appliances | Parts & supplies, like Garage. No separate top-level tab.
+
 ## 1.3.0
 - New **Appliances** tab (Appliances | Parts & supplies), like Garage. Equipment in the Appliances and HVAC areas moves there; Home keeps tasks and other house systems.
 - Parts & supplies for appliances share the parts list: tag items to an appliance or "Household / general", with appliance categories and order links shown on each appliance card.

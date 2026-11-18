@@ -535,7 +535,7 @@ function allDue(){
   for(const v of vehicles.filter(v=>v.status!=="gone")) for(const [kind,s] of [["Registration",regStatus(v)],["Oil change",oilStatus(v)]]) if(s.applies&&(s.key==="bad"||s.key==="soon")) out.push({sec:"Garage",go:"v-"+v.id,title:vname(v),what:`${kind}: ${s.short}`,s});
   for(const t of homeTasks.filter(t=>t.status!=="archived")){ const s=taskStatus(t); if(s.key==="bad"||s.key==="soon") out.push({sec:"Home",go:"h-"+t.id,title:t.name,what:`Due ${s.short}`,s}) }
   for(const c of checklists){ const s=listStatus(c); if(s.key==="bad"||s.key==="soon") out.push({sec:"Seasonal",go:"s-"+c.id,title:c.name,what:`${s.short} · ${s.nDone}/${s.total} done`,s}) }
-  for(const e of equipment){ const s=warrantyStatus(e); if(s&&s.key==="soon") out.push({sec:isApplEquip(e)?"Appliances":"Home",go:isApplEquip(e)?"appliances":"home",title:e.name,what:s.short,s}) }
+  for(const e of equipment){ const s=warrantyStatus(e); if(s&&s.key==="soon") out.push({sec:"Home",go:isApplEquip(e)?"appliances":"home",title:e.name,what:s.short,s}) }
   out.sort((a,b)=>(a.s.key==="bad"?0:1)-(b.s.key==="bad"?0:1)||((a.s.days??-1e9)-(b.s.days??-1e9)));
   return out;
 }
@@ -544,7 +544,7 @@ function topHTML(on){
   const cnt=sec=>{const l=due.filter(i=>i.sec===sec); if(!l.length) return ""; return `<span class="cnt ${l.some(i=>i.s.key==="bad")?"":"soon"}">${l.length}</span>`};
   const tab=(h,label,key,extra="")=>`<a href="#${h}" class="${on===key?"on":""}">${label}${extra}</a>`;
   return `<div class="top"><div class="brand"><h1>Niemeyer Family <span>Tracker</span></h1>
-    <nav class="nav">${tab("","Overview","overview")}${tab("garage","Garage","garage",cnt("Garage"))}${tab("appliances","Appliances","appliances",cnt("Appliances"))}${tab("home","Home","home",cnt("Home"))}${tab("seasonal","Seasonal","seasonal",cnt("Seasonal"))}</nav></div>${syncHTML()}</div>
+    <nav class="nav">${tab("","Overview","overview")}${tab("garage","Garage","garage",cnt("Garage"))}${tab("home","Home","home",cnt("Home"))}${tab("seasonal","Seasonal","seasonal",cnt("Seasonal"))}</nav></div>${syncHTML()}</div>
   ${staleNote?`<div class="banner">Can't reach the tracker database right now. What you see may be out of date.</div>`:""}`;
 }
 function dueRowHTML(i){ return `<div class="row" data-hash="${esc(i.go)}"><span class="badge ${i.s.key}">${i.s.key==="bad"?"Overdue":"Soon"}</span><div class="what"><span class="cat">${esc(i.sec)}</span> <b>${esc(i.title)}</b> — ${esc(i.what)}</div><span class="note">${esc(i.s.rel||"")}</span></div>` }
@@ -568,8 +568,7 @@ function renderOverview(){
   <div class="tiles">
     <a class="tile" href="#garage"><h3>Garage</h3><div class="big">${active.length}</div><div class="note">active vehicles${secDue("Garage")?` · ${secDue("Garage")} due`:""}</div></a>
     <a class="tile" href="#parts"><h3>Parts &amp; tools</h3><div class="big">${garageParts().length}</div><div class="note">items on the shelf${garageParts().filter(partLow).length?` · ${garageParts().filter(partLow).length} low`:""}</div></a>
-    <a class="tile" href="#appliances"><h3>Appliances</h3><div class="big">${applEquip().length}</div><div class="note">appliances &amp; HVAC · ${applParts().length} parts${applParts().filter(partLow).length?` · ${applParts().filter(partLow).length} low`:""}${secDue("Appliances")?` · ${secDue("Appliances")} due`:""}</div></a>
-    <a class="tile" href="#home"><h3>Home</h3><div class="big">${tasks.length}</div><div class="note">recurring tasks · ${equipment.filter(e=>!isApplEquip(e)).length} systems${secDue("Home")?` · ${secDue("Home")} due`:""}</div></a>
+    <a class="tile" href="#home"><h3>Home</h3><div class="big">${tasks.length}</div><div class="note">recurring tasks · ${applEquip().length} appliances${applParts().filter(partLow).length?` · ${applParts().filter(partLow).length} parts low`:""}${secDue("Home")?` · ${secDue("Home")} due`:""}</div></a>
     <a class="tile" href="#seasonal"><h3>Seasonal</h3><div class="big">${checklists.length}</div><div class="note">checklists${openLists.length?` · ${openLists.length} in season now`:""}</div></a>
   </div>`;
 }
@@ -861,18 +860,18 @@ function renderParts(){
 function refreshPartsTable(){ const el=$("#ptable"); if(el) el.innerHTML=partsTableHTML(sortParts((route.view==="aparts"?applParts():garageParts()).filter(partMatches))); else render() }
 
 /* ---------- appliances ---------- */
-function applSubnav(on){ const low=applParts().filter(partLow).length; return `<div class="subnav"><a class="btn small ${on==="appliances"?"primary":""}" href="#appliances" style="text-decoration:none">Appliances</a><a class="btn small ${on==="aparts"?"primary":""}" href="#aparts" style="text-decoration:none">Parts &amp; supplies${low?` · ${low} low`:""}</a></div>` }
+function homeSubnav(on){ const low=applParts().filter(partLow).length; return `<div class="subnav"><a class="btn small ${on==="home"?"primary":""}" href="#home" style="text-decoration:none">Tasks &amp; systems</a><a class="btn small ${on==="appliances"?"primary":""}" href="#appliances" style="text-decoration:none">Appliances</a><a class="btn small ${on==="aparts"?"primary":""}" href="#aparts" style="text-decoration:none">Parts &amp; supplies${low?` · ${low} low`:""}</a></div>` }
 function renderAppliances(){
   const list=applEquip();
   const groups=APPL_AREAS.map(a=>[a,list.filter(e=>e.area===a)]).filter(g=>g[1].length);
-  $("#app").innerHTML=`${topHTML("appliances")}${applSubnav("appliances")}
+  $("#app").innerHTML=`${topHTML("home")}${homeSubnav("appliances")}
   <div class="sechead"><h2>Appliances &amp; HVAC · ${list.length}</h2>${canWrite?`<button class="btn small" data-act="addequip" data-area="Appliances">+ Add appliance</button>`:""}</div>
   ${groups.map(([a,l])=>`<div class="seclabel">${a==="HVAC"?"Heating &amp; cooling":esc(a)}</div><div class="panels">${l.map(e=>equipCardHTML(e,true)).join("")}</div>`).join("")||`<div class="note">Add your fridge, dishwasher, washer, dryer and HVAC here to keep model, serial, install date, warranty and parts in one place.</div>`}
   <p class="hint">Tap a card to edit its model, serial, install date and warranty. Parts links open the item to order.</p>`;
 }
 function renderApplParts(){
   const ae=applEquip();
-  $("#app").innerHTML=`${topHTML("appliances")}${applSubnav("aparts")}
+  $("#app").innerHTML=`${topHTML("home")}${homeSubnav("aparts")}
   <div class="toolbar">
     <input type="search" id="pq" placeholder="Search name, part #, brand…" value="${esc(af.q)}">
     <select id="pveh"><option value="">All appliances</option><option value="house" ${af.veh==="house"?"selected":""}>Household / general</option>${ae.map(e=>`<option value="${esc(e.id)}" ${af.veh===e.id?"selected":""}>${esc(e.name)}</option>`).join("")}</select>
@@ -965,12 +964,12 @@ function equipCardHTML(e,withParts){
 }
 function renderHomeTab(){
   const tasks=activeTasks(), arch=homeTasks.filter(t=>t.status==="archived");
-  $("#app").innerHTML=`${topHTML("home")}
+  $("#app").innerHTML=`${topHTML("home")}${homeSubnav("home")}
   <div class="sechead"><h2>Recurring tasks · ${tasks.length}</h2>${canWrite?`<button class="btn small" data-act="addtask">+ Add task</button>`:""}</div>
   <div class="rowlist">${tasks.map(taskRowHTML).join("")||`<div class="r note">No tasks yet.</div>`}</div>
   <p class="hint">"Set up" means it has never been logged. Hit ✓ Done the next time you do it (or open it and log a past date) and the clock starts.</p>
   <div class="sechead" style="margin-top:26px"><h2>Systems &amp; equipment · ${equipment.filter(e=>!isApplEquip(e)).length}</h2>${canWrite?`<button class="btn small" data-act="addequip">+ Add equipment</button>`:""}</div>
-  <p class="hint" style="margin:-4px 0 10px">Appliances and HVAC are on the <a href="#appliances">Appliances</a> tab.</p><div class="panels">${equipment.filter(e=>!isApplEquip(e)).map(e=>equipCardHTML(e)).join("")||`<div class="note">Add your water heater, electrical and other house systems to keep model, serial, install date and warranty in one place.</div>`}</div>
+  <p class="hint" style="margin:-4px 0 10px">Appliances and HVAC are under <a href="#appliances">Appliances</a>.</p><div class="panels">${equipment.filter(e=>!isApplEquip(e)).map(e=>equipCardHTML(e)).join("")||`<div class="note">Add your water heater, electrical and other house systems to keep model, serial, install date and warranty in one place.</div>`}</div>
   ${arch.length?`<details class="gone"><summary>Archived tasks · ${arch.length}</summary><div class="rowlist" style="margin-top:12px">${arch.map(taskRowHTML).join("")}</div></details>`:""}`;
 }
 function renderTask(t){
