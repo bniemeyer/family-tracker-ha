@@ -156,6 +156,7 @@ table.t tr.clk:hover td{background:var(--panel2)}
 .qty .btn{padding:1px 8px}
 .chips{display:flex;flex-wrap:wrap;gap:4px}
 .chip{font-size:12px;background:var(--na-bg);color:var(--ink2);border-radius:999px;padding:1px 8px;white-space:nowrap}
+a.chip{text-decoration:none;color:var(--ink)}a.chip:hover{background:var(--line)}
 .checkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 12px;max-height:200px;overflow:auto;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
 .checkgrid label{flex-direction:row!important;align-items:center;gap:6px!important;color:var(--ink)!important}
 .checkgrid input{width:auto!important}
@@ -394,6 +395,10 @@ let pf={q:"",veh:"",kind:"",low:false};
 const HOME_SOON=30, SEASON_GRACE=60;
 const PART_KINDS=["Part","Fluid","Tool"];
 const PART_CATS=["Oil filter","Engine oil","Air filter","Cabin filter","Fuel filter","Spark plugs","Belt","Blades","Battery","Brake parts","Bulbs","Wipers","Gear lube","Coolant","Grease","Tire / wheel","Hardware","Tool","Other"];
+const APPL_AREAS=["Appliances","HVAC"];
+const APPL_KINDS=["Part","Consumable","Tool"];
+const APPL_PART_CATS=["Water filter","Air filter","Dishwasher filter","Cleaner / tablets","Detergent & rinse aid","Hoses & gaskets","Lint & vent","Coil cleaner","Bulbs","Other"];
+let af={q:"",veh:"",kind:"",low:false};
 const HOME_AREAS=["HVAC","Plumbing","Electrical","Safety","Appliances","Exterior","Yard","Other"];
 const SEASONS=["Fall","Winter","Spring","Summer"];
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -480,6 +485,8 @@ function render(){
   if(route.view==="list"){ const c=checklists.find(x=>x.id===route.id); if(c) return renderList(c); }
   if(route.view==="garage") return renderHome();
   if(route.view==="parts") return renderParts();
+  if(route.view==="appliances") return renderAppliances();
+  if(route.view==="aparts") return renderApplParts();
   if(route.view==="home") return renderHomeTab();
   if(route.view==="seasonal") return renderSeasonal();
   if(route.view==="settings") return renderSettings();
@@ -528,7 +535,7 @@ function allDue(){
   for(const v of vehicles.filter(v=>v.status!=="gone")) for(const [kind,s] of [["Registration",regStatus(v)],["Oil change",oilStatus(v)]]) if(s.applies&&(s.key==="bad"||s.key==="soon")) out.push({sec:"Garage",go:"v-"+v.id,title:vname(v),what:`${kind}: ${s.short}`,s});
   for(const t of homeTasks.filter(t=>t.status!=="archived")){ const s=taskStatus(t); if(s.key==="bad"||s.key==="soon") out.push({sec:"Home",go:"h-"+t.id,title:t.name,what:`Due ${s.short}`,s}) }
   for(const c of checklists){ const s=listStatus(c); if(s.key==="bad"||s.key==="soon") out.push({sec:"Seasonal",go:"s-"+c.id,title:c.name,what:`${s.short} · ${s.nDone}/${s.total} done`,s}) }
-  for(const e of equipment){ const s=warrantyStatus(e); if(s&&s.key==="soon") out.push({sec:"Home",go:"home",title:e.name,what:s.short,s}) }
+  for(const e of equipment){ const s=warrantyStatus(e); if(s&&s.key==="soon") out.push({sec:isApplEquip(e)?"Appliances":"Home",go:isApplEquip(e)?"appliances":"home",title:e.name,what:s.short,s}) }
   out.sort((a,b)=>(a.s.key==="bad"?0:1)-(b.s.key==="bad"?0:1)||((a.s.days??-1e9)-(b.s.days??-1e9)));
   return out;
 }
@@ -537,7 +544,7 @@ function topHTML(on){
   const cnt=sec=>{const l=due.filter(i=>i.sec===sec); if(!l.length) return ""; return `<span class="cnt ${l.some(i=>i.s.key==="bad")?"":"soon"}">${l.length}</span>`};
   const tab=(h,label,key,extra="")=>`<a href="#${h}" class="${on===key?"on":""}">${label}${extra}</a>`;
   return `<div class="top"><div class="brand"><h1>Niemeyer Family <span>Tracker</span></h1>
-    <nav class="nav">${tab("","Overview","overview")}${tab("garage","Garage","garage",cnt("Garage"))}${tab("home","Home","home",cnt("Home"))}${tab("seasonal","Seasonal","seasonal",cnt("Seasonal"))}</nav></div>${syncHTML()}</div>
+    <nav class="nav">${tab("","Overview","overview")}${tab("garage","Garage","garage",cnt("Garage"))}${tab("appliances","Appliances","appliances",cnt("Appliances"))}${tab("home","Home","home",cnt("Home"))}${tab("seasonal","Seasonal","seasonal",cnt("Seasonal"))}</nav></div>${syncHTML()}</div>
   ${staleNote?`<div class="banner">Can't reach the tracker database right now. What you see may be out of date.</div>`:""}`;
 }
 function dueRowHTML(i){ return `<div class="row" data-hash="${esc(i.go)}"><span class="badge ${i.s.key}">${i.s.key==="bad"?"Overdue":"Soon"}</span><div class="what"><span class="cat">${esc(i.sec)}</span> <b>${esc(i.title)}</b> — ${esc(i.what)}</div><span class="note">${esc(i.s.rel||"")}</span></div>` }
@@ -557,11 +564,12 @@ function renderOverview(){
     <div class="stat ok"><div class="n">${openLists.length}</div><div class="l">Seasonal lists open</div></div>
   </div>
   <div class="upcoming">${due.length?due.map(dueRowHTML).join(""):`<div class="empty">Nothing overdue or coming up. Nice.</div>`}
-    ${lowParts.length?lowParts.map(p=>`<div class="row" data-hash="parts"><span class="badge soon">Low</span><div class="what"><span class="cat">Parts</span> <b>${esc(p.name)}</b> — ${p.qty} on hand (min ${p.minQty})</div><span class="note">${esc(fitsText(p))}</span></div>`).join(""):""}</div>
+    ${lowParts.length?lowParts.map(p=>`<div class="row" data-hash="${isApplPart(p)?"aparts":"parts"}"><span class="badge soon">Low</span><div class="what"><span class="cat">Parts</span> <b>${esc(p.name)}</b> — ${p.qty} on hand (min ${p.minQty})</div><span class="note">${esc(fitsText(p))}</span></div>`).join(""):""}</div>
   <div class="tiles">
     <a class="tile" href="#garage"><h3>Garage</h3><div class="big">${active.length}</div><div class="note">active vehicles${secDue("Garage")?` · ${secDue("Garage")} due`:""}</div></a>
-    <a class="tile" href="#parts"><h3>Parts &amp; tools</h3><div class="big">${parts.length}</div><div class="note">items on the shelf${lowParts.length?` · ${lowParts.length} low`:""}</div></a>
-    <a class="tile" href="#home"><h3>Home</h3><div class="big">${tasks.length}</div><div class="note">recurring tasks · ${equipment.length} systems${secDue("Home")?` · ${secDue("Home")} due`:""}</div></a>
+    <a class="tile" href="#parts"><h3>Parts &amp; tools</h3><div class="big">${garageParts().length}</div><div class="note">items on the shelf${garageParts().filter(partLow).length?` · ${garageParts().filter(partLow).length} low`:""}</div></a>
+    <a class="tile" href="#appliances"><h3>Appliances</h3><div class="big">${applEquip().length}</div><div class="note">appliances &amp; HVAC · ${applParts().length} parts${applParts().filter(partLow).length?` · ${applParts().filter(partLow).length} low`:""}${secDue("Appliances")?` · ${secDue("Appliances")} due`:""}</div></a>
+    <a class="tile" href="#home"><h3>Home</h3><div class="big">${tasks.length}</div><div class="note">recurring tasks · ${equipment.filter(e=>!isApplEquip(e)).length} systems${secDue("Home")?` · ${secDue("Home")} due`:""}</div></a>
     <a class="tile" href="#seasonal"><h3>Seasonal</h3><div class="big">${checklists.length}</div><div class="note">checklists${openLists.length?` · ${openLists.length} in season now`:""}</div></a>
   </div>`;
 }
@@ -582,7 +590,7 @@ function cardHTML(v){
       ${v.status==="gone"?`<div class="badges"><span class="badge na">${esc(v.goneNote||"Sold / gone")}</span></div>`:`<div class="badges">${badgeHTML(r,"Reg")}${badgeHTML(o,"Oil")}</div>`}
     </div></div>`;
 }
-function garageSubnav(on){ const low=parts.filter(partLow).length; return `<div class="subnav"><a class="btn small ${on==="vehicles"?"primary":""}" href="#garage" style="text-decoration:none">Vehicles</a><a class="btn small ${on==="parts"?"primary":""}" href="#parts" style="text-decoration:none">Parts &amp; tools${low?` · ${low} low`:""}</a></div>` }
+function garageSubnav(on){ const low=garageParts().filter(partLow).length; return `<div class="subnav"><a class="btn small ${on==="vehicles"?"primary":""}" href="#garage" style="text-decoration:none">Vehicles</a><a class="btn small ${on==="parts"?"primary":""}" href="#parts" style="text-decoration:none">Parts &amp; tools${low?` · ${low} low`:""}</a></div>` }
 function renderHome(){
   const active=vehicles.filter(v=>v.status!=="gone").sort((a,b)=>(a.order??0)-(b.order??0));
   const gone=vehicles.filter(v=>v.status==="gone").sort((a,b)=>(a.order??0)-(b.order??0));
@@ -805,9 +813,16 @@ async function delService(sid){
 
 /* ---------- parts & tools ---------- */
 const activeVehicles=()=>vehicles.filter(v=>v.status!=="gone").sort((a,b)=>(a.order??0)-(b.order??0));
-function shortName(id){ if(id==="shop") return "Shop / general"; const v=vehicles.find(x=>x.id===id); return v?[v.year,v.model].filter(Boolean).join(" "):id }
+const isApplEquip=e=>!!e&&APPL_AREAS.includes(e.area);
+const applEquip=()=>equipment.filter(isApplEquip).sort((a,b)=>APPL_AREAS.indexOf(a.area)-APPL_AREAS.indexOf(b.area)||String(a.name).localeCompare(String(b.name)));
+const isApplPart=p=>(p.fits||[]).some(f=>f==="house"||isApplEquip(equipment.find(e=>e.id===f)));
+const garageParts=()=>parts.filter(p=>!isApplPart(p));
+const applParts=()=>parts.filter(isApplPart);
+const curPF=()=>route.view==="aparts"?af:pf;
+function shortName(id){ if(id==="shop") return "Shop / general"; if(id==="house") return "Household / general"; const eq=equipment.find(x=>x.id===id); if(eq) return eq.name; const v=vehicles.find(x=>x.id===id); return v?[v.year,v.model].filter(Boolean).join(" "):id }
 const fitsText=p=>(p.fits||[]).map(shortName).join(", ");
 function partMatches(p){
+  const pf=curPF();
   if(pf.veh&&!(p.fits||[]).includes(pf.veh)) return false;
   if(pf.kind&&(p.kind||"Part")!==pf.kind) return false;
   if(pf.low&&!partLow(p)) return false;
@@ -826,7 +841,7 @@ function partRowHTML(p){
     <td>${canWrite?`<button class="btn small ghost" data-act="editpart" data-id="${esc(p.id)}">Edit</button>`:""}</td></tr>`;
 }
 function partsTableHTML(list){
-  if(!list.length) return `<div class="empty" style="padding:16px;color:var(--ink2)">${parts.length?"Nothing matches those filters.":"No parts yet. Add oil filters, plugs, belts, fluids and tools here, and tag which vehicles each one fits."}</div>`;
+  if(!list.length) return `<div class="empty" style="padding:16px;color:var(--ink2)">${(route.view==="aparts"?applParts():garageParts()).length?"Nothing matches those filters.":route.view==="aparts"?"No parts yet. Add water filters, dishwasher filters, cleaners and other supplies here, and tag which appliance each one fits.":"No parts yet. Add oil filters, plugs, belts, fluids and tools here, and tag which vehicles each one fits."}</div>`;
   return `<table class="t"><thead><tr><th>Item</th><th>Fits</th><th>Location</th><th>On hand</th><th>Min</th><th>Source</th><th></th></tr></thead><tbody>${list.map(partRowHTML).join("")}</tbody></table>`;
 }
 const sortParts=l=>[...l].sort((a,b)=>(partLow(b)-partLow(a))||String(a.category||"").localeCompare(String(b.category||""))||String(a.name||"").localeCompare(String(b.name||"")));
@@ -840,10 +855,34 @@ function renderParts(){
     <label class="note" style="display:flex;gap:5px;align-items:center"><input type="checkbox" id="plow" ${pf.low?"checked":""}> Low only</label>
     ${canWrite?`<button class="btn small primary" data-act="addpart">+ Add item</button>`:""}
   </div>
-  <div class="tablewrap" id="ptable">${partsTableHTML(sortParts(parts.filter(partMatches)))}</div>
+  <div class="tablewrap" id="ptable">${partsTableHTML(sortParts(garageParts().filter(partMatches)))}</div>
   <p class="hint">Set a minimum to get a "Low" flag when stock drops to it. Use − when you pull one off the shelf.</p>`;
 }
-function refreshPartsTable(){ const el=$("#ptable"); if(el) el.innerHTML=partsTableHTML(sortParts(parts.filter(partMatches))); else render() }
+function refreshPartsTable(){ const el=$("#ptable"); if(el) el.innerHTML=partsTableHTML(sortParts((route.view==="aparts"?applParts():garageParts()).filter(partMatches))); else render() }
+
+/* ---------- appliances ---------- */
+function applSubnav(on){ const low=applParts().filter(partLow).length; return `<div class="subnav"><a class="btn small ${on==="appliances"?"primary":""}" href="#appliances" style="text-decoration:none">Appliances</a><a class="btn small ${on==="aparts"?"primary":""}" href="#aparts" style="text-decoration:none">Parts &amp; supplies${low?` · ${low} low`:""}</a></div>` }
+function renderAppliances(){
+  const list=applEquip();
+  const groups=APPL_AREAS.map(a=>[a,list.filter(e=>e.area===a)]).filter(g=>g[1].length);
+  $("#app").innerHTML=`${topHTML("appliances")}${applSubnav("appliances")}
+  <div class="sechead"><h2>Appliances &amp; HVAC · ${list.length}</h2>${canWrite?`<button class="btn small" data-act="addequip" data-area="Appliances">+ Add appliance</button>`:""}</div>
+  ${groups.map(([a,l])=>`<div class="seclabel">${a==="HVAC"?"Heating &amp; cooling":esc(a)}</div><div class="panels">${l.map(e=>equipCardHTML(e,true)).join("")}</div>`).join("")||`<div class="note">Add your fridge, dishwasher, washer, dryer and HVAC here to keep model, serial, install date, warranty and parts in one place.</div>`}
+  <p class="hint">Tap a card to edit its model, serial, install date and warranty. Parts links open the item to order.</p>`;
+}
+function renderApplParts(){
+  const ae=applEquip();
+  $("#app").innerHTML=`${topHTML("appliances")}${applSubnav("aparts")}
+  <div class="toolbar">
+    <input type="search" id="pq" placeholder="Search name, part #, brand…" value="${esc(af.q)}">
+    <select id="pveh"><option value="">All appliances</option><option value="house" ${af.veh==="house"?"selected":""}>Household / general</option>${ae.map(e=>`<option value="${esc(e.id)}" ${af.veh===e.id?"selected":""}>${esc(e.name)}</option>`).join("")}</select>
+    <select id="pkind"><option value="">Parts &amp; supplies</option>${APPL_KINDS.map(k=>`<option ${af.kind===k?"selected":""}>${k}</option>`).join("")}</select>
+    <label class="note" style="display:flex;gap:5px;align-items:center"><input type="checkbox" id="plow" ${af.low?"checked":""}> Low only</label>
+    ${canWrite?`<button class="btn small primary" data-act="addpart" data-ctx="appl">+ Add item</button>`:""}
+  </div>
+  <div class="tablewrap" id="ptable">${partsTableHTML(sortParts(applParts().filter(partMatches)))}</div>
+  <p class="hint">Items marked "verify model" depend on a model number we don't have yet; check the appliance label before ordering. Set a minimum to get a "Low" flag.</p>`;
+}
 function vehiclePartsHTML(v){
   const mine=sortParts(parts.filter(p=>(p.fits||[]).includes(v.id)));
   const lists=checklists.filter(c=>c.vehicleId===v.id);
@@ -854,27 +893,29 @@ function vehiclePartsHTML(v){
     ${lists.length?`<div class="panel"><h2>Seasonal</h2><div class="log">${lists.map(c=>{const s=listStatus(c);return `<div class="entry" style="grid-template-columns:1fr auto;cursor:pointer" data-hash="s-${esc(c.id)}"><div><div class="t">${esc(c.name)}</div><div class="m">${s.nDone}/${s.total} done</div></div><span class="badge ${s.key}">${esc(s.short)}</span></div>`}).join("")}</div></div>`:""}
   </div>`;
 }
-function partDialog(p,presetVeh){
+function partDialog(p,presetVeh,ctx){
   const isNew=!p; p=p||{kind:"Part",fits:presetVeh?[presetVeh]:[],unit:"ea"};
+  const appl=ctx==="appl"||isApplPart(p)||route.view==="aparts"||route.view==="appliances";
   const av=activeVehicles(); const fits=new Set(p.fits||[]);
-  const extra=[...fits].filter(f=>f!=="shop"&&!av.some(v=>v.id===f));
+  const opts=appl?[["house","Household / general"],...applEquip().map(e=>[e.id,e.name])]:[["shop","Shop / general"],...av.map(v=>[v.id,vname(v)])];
+  const extra=[...fits].filter(f=>!opts.some(o=>o[0]===f));
+  const kinds=appl?APPL_KINDS:PART_KINDS, cats=appl?APPL_PART_CATS:PART_CATS;
   modal(`<h2>${isNew?"Add item":"Edit "+esc(p.name)}</h2><form class="form" style="background:none;padding:0">
-    <label>Kind<select name="kind">${PART_KINDS.map(k=>`<option ${k===(p.kind||"Part")?"selected":""}>${k}</option>`).join("")}</select></label>
-    <label>Category<select name="category">${[...new Set([...PART_CATS,p.category].filter(Boolean))].map(c=>`<option ${c===p.category?"selected":""}>${esc(c)}</option>`).join("")}</select></label>
-    <label class="full">Name<input name="name" value="${esc(p.name||"")}" placeholder="e.g. Oil filter, 5W-30 full synthetic, 10mm socket" required></label>
+    <label>Kind<select name="kind">${[...new Set([...kinds,p.kind].filter(Boolean))].map(k=>`<option ${k===(p.kind||"Part")?"selected":""}>${esc(k)}</option>`).join("")}</select></label>
+    <label>Category<select name="category">${[...new Set([...cats,p.category].filter(Boolean))].map(c=>`<option ${c===p.category?"selected":""}>${esc(c)}</option>`).join("")}</select></label>
+    <label class="full">Name<input name="name" value="${esc(p.name||"")}" placeholder="${appl?"e.g. Fridge water filter, dishwasher cleaner tablets":"e.g. Oil filter, 5W-30 full synthetic, 10mm socket"}" required></label>
     <label>Brand<input name="brand" value="${esc(p.brand||"")}"></label>
     <label>Part #<input name="partNumber" value="${esc(p.partNumber||"")}"></label>
     <label class="full">Cross-ref / alt part #s<input name="altNumbers" value="${esc(p.altNumbers||"")}" placeholder="WIX 51348, Fram PH3614…"></label>
     <div class="full"><div class="note" style="margin-bottom:4px">Fits</div><div class="checkgrid">
-      <label><input type="checkbox" name="fits" value="shop" ${fits.has("shop")?"checked":""}> Shop / general</label>
-      ${av.map(v=>`<label><input type="checkbox" name="fits" value="${esc(v.id)}" ${fits.has(v.id)?"checked":""}> ${esc(vname(v))}</label>`).join("")}
+      ${opts.map(([id,label])=>`<label><input type="checkbox" name="fits" value="${esc(id)}" ${fits.has(id)?"checked":""}> ${esc(label)}</label>`).join("")}
       ${extra.map(f=>`<label><input type="checkbox" name="fits" value="${esc(f)}" checked> ${esc(shortName(f))}</label>`).join("")}
     </div></div>
     <label>On hand<input name="qty" inputmode="decimal" value="${typeof p.qty==="number"?p.qty:""}"></label>
     <label>Low at (min)<input name="minQty" inputmode="decimal" value="${typeof p.minQty==="number"?p.minQty:""}" placeholder="blank = no alert"></label>
     <label>Unit<input name="unit" value="${esc(p.unit||"ea")}" placeholder="ea, qt, gal, set"></label>
     <label>Shelf / bin<input name="location" value="${esc(p.location||"")}"></label>
-    <label>Where to buy<input name="vendor" value="${esc(p.vendor||"")}" placeholder="Rural King, Amazon, dealer…"></label>
+    <label>Where to buy<input name="vendor" value="${esc(p.vendor||"")}" placeholder="${appl?"Amazon, Costco, Lowe&#39;s…":"Rural King, Amazon, dealer…"}"></label>
     <label>Price ($)<input name="price" inputmode="decimal" value="${typeof p.price==="number"?p.price:esc(p.price||"")}"></label>
     <label class="full">Link<input name="url" value="${esc(p.url||"")}" placeholder="https://…"></label>
     <label class="full">Notes<textarea name="notes" rows="2">${esc(p.notes||"")}</textarea></label>
@@ -914,12 +955,13 @@ function taskRowHTML(t){
     <span class="note" style="text-align:right">${esc(s.short)}${s.rel?`<br>${esc(s.rel)}`:""}</span>
     ${canWrite?`<button class="btn small" data-act="taskdone" data-id="${esc(t.id)}" title="Log it done today">✓ Done</button>`:""}</div>`;
 }
-function equipCardHTML(e){
+function equipCardHTML(e,withParts){
   const w=warrantyStatus(e); const age=isDate(e.installDate)?(-daysUntil(toDate(e.installDate))/365):null;
   const tasks=homeTasks.filter(t=>t.equipmentId===e.id&&t.status!=="archived");
   return `<div class="panel" style="cursor:pointer" data-equip="${esc(e.id)}"><div class="cat">${esc(e.area||"Equipment")}</div><h3 style="font-size:20px;margin:2px 0 6px">${esc(e.name)}</h3>
     <div class="kv">${[["Brand / model",[e.brand,e.model].filter(Boolean).join(" ")],["Serial",e.serial],["Specs",e.specs],["Installed",isDate(e.installDate)?`${fmt(e.installDate)}${age!==null?` (${age.toFixed(1)} yrs)`:""}`:e.installDate],["Filter",e.filterSize],["Location",e.location],["Installer",e.installer]].filter(r=>r[1]).map(([k,v])=>`<div class="k">${k}</div><div class="v">${esc(v)}</div>`).join("")}</div>
-    <div class="badges" style="margin-top:10px">${w?`<span class="badge ${w.key}">${esc(w.short)}</span>`:""}${tasks.map(t=>{const s=taskStatus(t);return `<span class="badge ${s.key}">${esc(t.name)}: ${esc(s.short)}</span>`}).join("")}</div></div>`;
+    <div class="badges" style="margin-top:10px">${w?`<span class="badge ${w.key}">${esc(w.short)}</span>`:""}${tasks.map(t=>{const s=taskStatus(t);return `<span class="badge ${s.key}">${esc(t.name)}: ${esc(s.short)}</span>`}).join("")}</div>
+    ${withParts?(()=>{const mine=sortParts(parts.filter(p=>(p.fits||[]).includes(e.id)));return mine.length?`<div class="seclabel" style="margin:12px 0 6px">Parts &amp; supplies</div><div class="chips">${mine.map(p=>p.url?`<a class="chip" href="${esc(p.url)}" target="_blank" rel="noopener" title="Order ${esc(p.name)}">${esc(p.name)} ↗</a>`:`<span class="chip">${esc(p.name)}</span>`).join("")}</div>`:""})():""}</div>`;
 }
 function renderHomeTab(){
   const tasks=activeTasks(), arch=homeTasks.filter(t=>t.status==="archived");
@@ -927,8 +969,8 @@ function renderHomeTab(){
   <div class="sechead"><h2>Recurring tasks · ${tasks.length}</h2>${canWrite?`<button class="btn small" data-act="addtask">+ Add task</button>`:""}</div>
   <div class="rowlist">${tasks.map(taskRowHTML).join("")||`<div class="r note">No tasks yet.</div>`}</div>
   <p class="hint">"Set up" means it has never been logged. Hit ✓ Done the next time you do it (or open it and log a past date) and the clock starts.</p>
-  <div class="sechead" style="margin-top:26px"><h2>Systems &amp; equipment · ${equipment.length}</h2>${canWrite?`<button class="btn small" data-act="addequip">+ Add equipment</button>`:""}</div>
-  <div class="panels">${equipment.map(equipCardHTML).join("")||`<div class="note">Add your HVAC, water heater, appliances and the like to keep model, serial, install date and warranty in one place.</div>`}</div>
+  <div class="sechead" style="margin-top:26px"><h2>Systems &amp; equipment · ${equipment.filter(e=>!isApplEquip(e)).length}</h2>${canWrite?`<button class="btn small" data-act="addequip">+ Add equipment</button>`:""}</div>
+  <p class="hint" style="margin:-4px 0 10px">Appliances and HVAC are on the <a href="#appliances">Appliances</a> tab.</p><div class="panels">${equipment.filter(e=>!isApplEquip(e)).map(e=>equipCardHTML(e)).join("")||`<div class="note">Add your water heater, electrical and other house systems to keep model, serial, install date and warranty in one place.</div>`}</div>
   ${arch.length?`<details class="gone"><summary>Archived tasks · ${arch.length}</summary><div class="rowlist" style="margin-top:12px">${arch.map(taskRowHTML).join("")}</div></details>`:""}`;
 }
 function renderTask(t){
@@ -985,8 +1027,8 @@ function taskDialog(t){
     try{ await db.doc(`home/${id}`).set(data); toast(isNew?"Task added":"Saved") }catch(e){ toast("Couldn't save: "+(e.message||e.code)); return false }
   });
 }
-function equipDialog(e){
-  const isNew=!e; e=e||{area:"HVAC"};
+function equipDialog(e,area){
+  const isNew=!e; e=e||{area:area||"HVAC"};
   modal(`<h2>${isNew?"Add equipment":"Edit "+esc(e.name)}</h2><form class="form" style="background:none;padding:0">
     <label class="full">Name<input name="name" value="${esc(e.name||"")}" placeholder="e.g. Water heater" required></label>
     <label>Area<select name="area">${[...new Set([...HOME_AREAS,e.area].filter(Boolean))].map(a=>`<option ${a===e.area?"selected":""}>${esc(a)}</option>`).join("")}</select></label>
@@ -1175,6 +1217,7 @@ function updateSyncUI(){ const el=document.querySelector(".sync"); if(el) el.out
 
 /* ---------- events & routing ---------- */
 document.addEventListener("click",e=>{
+  if(e.target.closest('a[target="_blank"]')) return;
   const a=e.target.closest("[data-act]"); const g=e.target.closest("[data-go]");
   if(a&&a.dataset.act==="toggleitem") return;
   if(a){
@@ -1191,7 +1234,7 @@ document.addEventListener("click",e=>{
     else if(act==="copycal"){ const i=$("#calurl"); i.select(); (navigator.clipboard?navigator.clipboard.writeText(i.value):Promise.reject()).then(()=>toast("Copied"),()=>toast("Select the URL and copy it")) }
     else if(act==="hometab"){ location.hash="home" }
     else if(act==="seasontab"){ location.hash="seasonal" }
-    else if(act==="addpart"){ partDialog(null,a.dataset.veh) }
+    else if(act==="addpart"){ partDialog(null,a.dataset.veh,a.dataset.ctx) }
     else if(act==="editpart"){ partDialog(parts.find(x=>x.id===a.dataset.id)) }
     else if(act==="delpart"){ const p=parts.find(x=>x.id===a.dataset.id); confirmDelete(p?.name||"this item",()=>db.doc(`parts/${a.dataset.id}`).delete()) }
     else if(act==="qty"){ e.stopPropagation(); bumpQty(a.dataset.id,+a.dataset.d) }
@@ -1202,7 +1245,7 @@ document.addEventListener("click",e=>{
     else if(act==="newlog"){ showAddLog=true; render(); document.getElementById("logform")?.scrollIntoView({behavior:"smooth",block:"center"}) }
     else if(act==="cancellog"){ showAddLog=false; render() }
     else if(act==="dellog"){ const t=homeTasks.find(x=>x.id===route.id); const sid=a.dataset.id; confirmDelete("this entry",()=>db.doc(`home/${t.id}/log/${sid}`).delete()) }
-    else if(act==="addequip"){ equipDialog() }
+    else if(act==="addequip"){ equipDialog(null,a.dataset.area) }
     else if(act==="delequip"){ const q=equipment.find(x=>x.id===a.dataset.id); confirmDelete(q?.name||"this equipment",()=>db.doc(`equipment/${a.dataset.id}`).delete()) }
     else if(act==="addlist"){ listDialog() }
     else if(act==="editlist"){ listDialog(checklists.find(x=>x.id===route.id)) }
@@ -1228,13 +1271,13 @@ document.addEventListener("click",e=>{
   const eq=e.target.closest("[data-equip]"); if(eq&&canWrite){ equipDialog(equipment.find(x=>x.id===eq.dataset.equip)); return }
   const h=e.target.closest("[data-hash]"); if(h&&!e.target.closest("a")){ location.hash=h.dataset.hash }
 });
-document.addEventListener("input",e=>{ if(e.target.id==="pq"){ pf.q=e.target.value; refreshPartsTable() } });
+document.addEventListener("input",e=>{ if(e.target.id==="pq"){ curPF().q=e.target.value; refreshPartsTable() } });
 document.addEventListener("change",e=>{
   if(e.target.matches('input[data-act="photo"]')&&e.target.files[0]) uploadPhoto(e.target.files[0]);
   if(e.target.matches('input[data-act="importfile"]')&&e.target.files[0]){ importBackup(e.target.files[0]); e.target.value="" }
-  if(e.target.id==="pveh"){ pf.veh=e.target.value; refreshPartsTable() }
-  if(e.target.id==="pkind"){ pf.kind=e.target.value; refreshPartsTable() }
-  if(e.target.id==="plow"){ pf.low=e.target.checked; refreshPartsTable() }
+  if(e.target.id==="pveh"){ curPF().veh=e.target.value; refreshPartsTable() }
+  if(e.target.id==="pkind"){ curPF().kind=e.target.value; refreshPartsTable() }
+  if(e.target.id==="plow"){ curPF().low=e.target.checked; refreshPartsTable() }
   if(e.target.dataset&&e.target.dataset.act==="toggleitem"){ toggleItem(e.target.dataset.id,e.target.checked) }
   if(e.target.name==="category"){ const w=document.getElementById("newregwrap"); if(w) w.style.display=e.target.value==="Registration renewal"?"flex":"none" }
 });
@@ -1257,7 +1300,7 @@ document.addEventListener("submit",e=>{
 function applyRoute(){
   const h=location.hash.replace(/^#/,"");
   const prev=route.id;
-  route=h.startsWith("v-")?{view:"vehicle",id:h.slice(2)}:h.startsWith("h-")?{view:"task",id:h.slice(2)}:h.startsWith("s-")?{view:"list",id:h.slice(2)}:["garage","parts","home","seasonal","settings"].includes(h)?{view:h}:{view:"overview"};
+  route=h.startsWith("v-")?{view:"vehicle",id:h.slice(2)}:h.startsWith("h-")?{view:"task",id:h.slice(2)}:h.startsWith("s-")?{view:"list",id:h.slice(2)}:["garage","parts","appliances","aparts","home","seasonal","settings"].includes(h)?{view:h}:{view:"overview"};
   if(route.id!==prev){ editing=false; showAddService=false; showAddLog=false; subscribeService(); subscribeLog() }
   document.querySelector(".modal")?.remove();
   render(); window.scrollTo(0,0);
@@ -1301,7 +1344,7 @@ function subscribeService(){
   },err=>{ clearTimeout(timer); loaded=true; loadErr=null; staleNote=true; render() });
   if(route.view==="vehicle") subscribeService();
   if(route.view==="task") subscribeLog();
-  const quietRender=()=>{ if(!loaded||editing||document.querySelector(".modal")) return; if(route.view==="parts"&&document.activeElement&&document.activeElement.id==="pq") return refreshPartsTable(); render() };
+  const quietRender=()=>{ if(!loaded||editing||document.querySelector(".modal")) return; if((route.view==="parts"||route.view==="aparts")&&document.activeElement&&document.activeElement.id==="pq") return refreshPartsTable(); render() };
   db.collection("parts").onSnapshot(s=>{ parts=s.docs.map(d=>({id:d.id,...d.data()})); quietRender() },()=>{});
   db.collection("home").onSnapshot(s=>{ homeTasks=s.docs.map(d=>({id:d.id,...d.data()})); quietRender() },()=>{});
   db.collection("equipment").onSnapshot(s=>{ equipment=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.area).localeCompare(String(b.area))||String(a.name).localeCompare(String(b.name))); quietRender() },()=>{});
