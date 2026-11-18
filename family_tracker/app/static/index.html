@@ -156,7 +156,8 @@ table.t tr.clk:hover td{background:var(--panel2)}
 .qty .btn{padding:1px 8px}
 .chips{display:flex;flex-wrap:wrap;gap:4px}
 .chip{font-size:12px;background:var(--na-bg);color:var(--ink2);border-radius:999px;padding:1px 8px;white-space:nowrap}
-a.chip{text-decoration:none;color:var(--ink)}a.chip:hover{background:var(--line)}
+a.chip{text-decoration:none;color:var(--ink)}
+.btn.buy{text-decoration:none;white-space:nowrap}a.chip:hover{background:var(--line)}
 .checkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 12px;max-height:200px;overflow:auto;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
 .checkgrid label{flex-direction:row!important;align-items:center;gap:6px!important;color:var(--ink)!important}
 .checkgrid input{width:auto!important}
@@ -828,6 +829,7 @@ function partMatches(p){
   if(pf.q){ const hay=[p.name,p.brand,p.partNumber,p.altNumbers,p.category,p.location,p.vendor,p.notes,fitsText(p)].join(" ").toLowerCase(); if(!pf.q.toLowerCase().split(/\s+/).every(w=>hay.includes(w))) return false }
   return true;
 }
+function buyHTML(p){ return p.url?`<a class="btn small primary buy" href="${esc(p.url)}" target="_blank" rel="noopener" title="Order on ${esc(p.vendor||"the web")}">🛒 Buy</a>`:(p.vendor?`<span class="note">${esc(p.vendor)}</span>`:"") }
 function qtyHTML(p){ const q=typeof p.qty==="number"?p.qty:"—"; return `<span class="qty">${canWrite?`<button class="btn small" data-act="qty" data-id="${esc(p.id)}" data-d="-1" title="Use one">−</button>`:""}<b>${q}</b>${canWrite?`<button class="btn small" data-act="qty" data-id="${esc(p.id)}" data-d="1" title="Add one">+</button>`:""}</span>${p.unit&&p.unit!=="ea"?` <span class="note">${esc(p.unit)}</span>`:""}` }
 function partRowHTML(p){
   return `<tr class="${partLow(p)?"low":""}">
@@ -836,12 +838,12 @@ function partRowHTML(p){
     <td>${esc(p.location||"")||'<span class="hint">—</span>'}</td>
     <td>${qtyHTML(p)}</td>
     <td class="note">${typeof p.minQty==="number"?p.minQty:"—"}</td>
-    <td>${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener" class="note">${esc(p.vendor||"Buy")}</a>`:esc(p.vendor||"")}</td>
+    <td>${buyHTML(p)}</td>
     <td>${canWrite?`<button class="btn small ghost" data-act="editpart" data-id="${esc(p.id)}">Edit</button>`:""}</td></tr>`;
 }
 function partsTableHTML(list){
   if(!list.length) return `<div class="empty" style="padding:16px;color:var(--ink2)">${(route.view==="aparts"?applParts():garageParts()).length?"Nothing matches those filters.":route.view==="aparts"?"No parts yet. Add water filters, dishwasher filters, cleaners and other supplies here, and tag which appliance each one fits.":"No parts yet. Add oil filters, plugs, belts, fluids and tools here, and tag which vehicles each one fits."}</div>`;
-  return `<table class="t"><thead><tr><th>Item</th><th>Fits</th><th>Location</th><th>On hand</th><th>Min</th><th>Source</th><th></th></tr></thead><tbody>${list.map(partRowHTML).join("")}</tbody></table>`;
+  return `<table class="t"><thead><tr><th>Item</th><th>Fits</th><th>Location</th><th>On hand</th><th>Min</th><th>Buy</th><th></th></tr></thead><tbody>${list.map(partRowHTML).join("")}</tbody></table>`;
 }
 const sortParts=l=>[...l].sort((a,b)=>(partLow(b)-partLow(a))||String(a.category||"").localeCompare(String(b.category||""))||String(a.name||"").localeCompare(String(b.name||"")));
 function renderParts(){
@@ -887,7 +889,7 @@ function vehiclePartsHTML(v){
   const lists=checklists.filter(c=>c.vehicleId===v.id);
   return `<div class="panels">
     <div class="panel"><div class="sechead"><h2 style="margin:0">Parts &amp; fluids</h2>${canWrite?`<button class="btn small" data-act="addpart" data-veh="${esc(v.id)}">+ Add part</button>`:""}</div>
-      ${mine.length?`<div class="tablewrap" style="box-shadow:none"><table class="t"><tbody>${mine.map(p=>`<tr class="${partLow(p)?"low":""}"><td data-edit="${esc(p.id)}" style="cursor:pointer"><b>${esc(p.name)}</b><div class="note">${esc([p.category,p.brand].filter(Boolean).join(" · "))}${p.partNumber?` · <span class="mono">${esc(p.partNumber)}</span>`:""}</div>${p.notes?`<div class="hint">${esc(p.notes)}</div>`:""}</td><td class="note">${esc(p.location||"")}</td><td>${qtyHTML(p)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="note">No parts tagged for this ${v.type==="Trailer"?"trailer":"vehicle"} yet.</div>`}
+      ${mine.length?`<div class="tablewrap" style="box-shadow:none"><table class="t"><tbody>${mine.map(p=>`<tr class="${partLow(p)?"low":""}"><td data-edit="${esc(p.id)}" style="cursor:pointer"><b>${esc(p.name)}</b><div class="note">${esc([p.category,p.brand].filter(Boolean).join(" · "))}${p.partNumber?` · <span class="mono">${esc(p.partNumber)}</span>`:""}</div>${p.notes?`<div class="hint">${esc(p.notes)}</div>`:""}</td><td class="note">${esc(p.location||"")}</td><td>${qtyHTML(p)}</td><td>${buyHTML(p)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="note">No parts tagged for this ${v.type==="Trailer"?"trailer":"vehicle"} yet.</div>`}
     </div>
     ${lists.length?`<div class="panel"><h2>Seasonal</h2><div class="log">${lists.map(c=>{const s=listStatus(c);return `<div class="entry" style="grid-template-columns:1fr auto;cursor:pointer" data-hash="s-${esc(c.id)}"><div><div class="t">${esc(c.name)}</div><div class="m">${s.nDone}/${s.total} done</div></div><span class="badge ${s.key}">${esc(s.short)}</span></div>`}).join("")}</div></div>`:""}
   </div>`;
@@ -960,7 +962,7 @@ function equipCardHTML(e,withParts){
   return `<div class="panel" style="cursor:pointer" data-equip="${esc(e.id)}"><div class="cat">${esc(e.area||"Equipment")}</div><h3 style="font-size:20px;margin:2px 0 6px">${esc(e.name)}</h3>
     <div class="kv">${[["Brand / model",[e.brand,e.model].filter(Boolean).join(" ")],["Serial",e.serial],["Specs",e.specs],["Installed",isDate(e.installDate)?`${fmt(e.installDate)}${age!==null?` (${age.toFixed(1)} yrs)`:""}`:e.installDate],["Filter",e.filterSize],["Location",e.location],["Installer",e.installer]].filter(r=>r[1]).map(([k,v])=>`<div class="k">${k}</div><div class="v">${esc(v)}</div>`).join("")}</div>
     <div class="badges" style="margin-top:10px">${w?`<span class="badge ${w.key}">${esc(w.short)}</span>`:""}${tasks.map(t=>{const s=taskStatus(t);return `<span class="badge ${s.key}">${esc(t.name)}: ${esc(s.short)}</span>`}).join("")}</div>
-    ${withParts?(()=>{const mine=sortParts(parts.filter(p=>(p.fits||[]).includes(e.id)));return mine.length?`<div class="seclabel" style="margin:12px 0 6px">Parts &amp; supplies</div><div class="chips">${mine.map(p=>p.url?`<a class="chip" href="${esc(p.url)}" target="_blank" rel="noopener" title="Order ${esc(p.name)}">${esc(p.name)} ↗</a>`:`<span class="chip">${esc(p.name)}</span>`).join("")}</div>`:""})():""}</div>`;
+    ${withParts?(()=>{const mine=sortParts(parts.filter(p=>(p.fits||[]).includes(e.id)));return mine.length?`<div class="seclabel" style="margin:12px 0 6px">Parts &amp; supplies</div><div class="chips">${mine.map(p=>p.url?`<a class="chip" href="${esc(p.url)}" target="_blank" rel="noopener" title="Order ${esc(p.name)}">🛒 ${esc(p.name)}</a>`:`<span class="chip">${esc(p.name)}</span>`).join("")}</div>`:""})():""}</div>`;
 }
 function renderHomeTab(){
   const tasks=activeTasks(), arch=homeTasks.filter(t=>t.status==="archived");

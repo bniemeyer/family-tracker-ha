@@ -1,3 +1,6 @@
+## 1.3.2
+- Quick-buy: parts with a link show a 🛒 Buy button in the Garage and Home parts lists and on each vehicle's parts panel; appliance cards show 🛒 part links.
+
 ## 1.3.1
 - Appliances moved under Home: Home now has Tasks & systems | Appliances | Parts & supplies, like Garage. No separate top-level tab.
 
