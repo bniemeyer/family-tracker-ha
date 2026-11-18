@@ -27,7 +27,7 @@ try:
 except ImportError:  # pragma: no cover
     ZoneInfo = None
 
-VERSION = "1.5.3"
+VERSION = "1.5.4"
 DATA_DIR = os.environ.get("FT_DATA", "/data")
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 BLOB_DIR = os.path.join(DATA_DIR, "blobs")

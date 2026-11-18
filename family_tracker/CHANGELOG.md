@@ -1,3 +1,8 @@
+## 1.5.4
+- A supply or tool can be linked to **several tasks** in a project: the item form has a task checklist, and **Link an existing project item** in a task adds that task without removing the others.
+- Unlinking from one task leaves the other links; deleting a task or heading only removes those links.
+- Items saved with a single task by earlier versions keep working.
+
 ## 1.5.3
 - Non-admin Home Assistant users can now open HouseKeeper from the sidebar (`panel_admin: false`). Everyone in the household can view and update projects, tasks and lists.
 

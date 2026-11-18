@@ -1360,6 +1360,9 @@ const money=n=>typeof n==="number"&&isFinite(n)?"$"+n.toLocaleString(undefined,{
 const num0=v=>typeof v==="number"&&isFinite(v)?v:0;
 function dueSt(d){ if(!isDate(d)) return null; const days=daysUntil(dueDate(d)); return {key:days<0?"bad":days<=PSOON?"soon":"ok",short:fmt(d),days,rel:rel(days)} }
 function matHave(m){ if(m.status==="have") return true; if(m.partId){ const pt=parts.find(x=>x.id===m.partId); const need=typeof m.qty==="number"?m.qty:1; if(pt&&typeof pt.qty==="number"&&pt.qty>=need) return true } return false }
+function mTasks(m){ return Array.isArray(m.taskIds)?m.taskIds:(m.taskId?[m.taskId]:[]) }
+function setTasks(m,ids){ m.taskIds=[...new Set(ids.filter(Boolean))]; delete m.taskId }
+function tasksLabel(p,m){ return mTasks(m).map(id=>taskLabel(p,id)).filter(Boolean).join(", ") }
 function allTasks(p){ const out=[]; (p.headings||[]).forEach(h=>(h.tasks||[]).forEach(t=>out.push({h,t}))); return out }
 function countUnits(tasks){ let d=0,n=0; for(const t of tasks){ const s=t.subtasks||[]; if(s.length){ n+=s.length; d+=s.filter(x=>x.done).length } else { n++; if(t.done) d++ } } return {d,n} }
 function projStats(p){
@@ -1404,7 +1407,7 @@ function renderProjects(){
 function projTaskHTML(p,h,t){
   if(projFilter&&t.assignee!==projFilter) return "";
   const ds=!t.done&&dueSt(t.due); const subs=t.subtasks||[]; const sd=subs.filter(s=>s.done).length;
-  const mats=(p.materials||[]).filter(m=>m.taskId===t.id);
+  const mats=(p.materials||[]).filter(m=>mTasks(m).includes(t.id));
   const A=`data-h="${esc(h.id)}" data-t="${esc(t.id)}"`;
   return `<div class="tk ${t.done?"done":""}">
     <input type="checkbox" data-pact="ttask" ${A} ${t.done?"checked":""} ${canWrite?"":"disabled"}>
@@ -1429,7 +1432,7 @@ function headingHTML(p,h){
 function matsHTML(p){
   const mats=p.materials||[]; const need=mats.filter(m=>!matHave(m)).length;
   return `<div class="panel" style="margin-bottom:16px"><div class="sechead"><h2 style="margin:0">Supplies &amp; tools <span class="note">Need ${need} · Have ${mats.length-need}</span></h2>${canWrite?`<button class="btn small" data-pact="newmat">+ Item</button>`:""}</div>
-  ${mats.length?`<div class="tablewrap" style="box-shadow:none"><table class="t"><tbody>${mats.map(m=>{const have=matHave(m);const pt=m.partId&&parts.find(x=>x.id===m.partId);const tl=m.taskId&&taskLabel(p,m.taskId);
+  ${mats.length?`<div class="tablewrap" style="box-shadow:none"><table class="t"><tbody>${mats.map(m=>{const have=matHave(m);const pt=m.partId&&parts.find(x=>x.id===m.partId);const tl=tasksLabel(p,m);
     return `<tr class="${have?"":"low"}"><td style="width:1%"><button class="badge ${have?"ok":"soon"}" style="border:0;cursor:pointer" data-pact="tmat" data-m="${esc(m.id)}" ${canWrite?"":"disabled"} title="Toggle need / have">${have?"Have":"Need"}</button></td>
     <td data-pact="editmat" data-m="${esc(m.id)}" style="cursor:pointer"><b>${esc(m.name)}</b><div class="note">${esc([m.kind||"Supply",typeof m.qty==="number"?`${m.qty} ${m.unit||""}`.trim():"",tl,pt?`on hand: ${typeof pt.qty==="number"?pt.qty:"?"}`:""].filter(Boolean).join(" · "))}</div>${m.notes?`<div class="hint">${esc(m.notes)}</div>`:""}</td>
     <td class="note" style="white-space:nowrap">${money(m.actCost)||money(m.estCost)}</td><td>${buyHTML(m)}</td></tr>`}).join("")}</tbody></table></div>`:`<div class="note">List what you'll need to buy and the tools you'll use. Tie items to a task, add a buy link, and they show up under What to buy.</div>`}</div>`;
@@ -1454,7 +1457,7 @@ function renderShopping(){
   $("#app").innerHTML=`${topHTML("projects")}${projSubnav("shopping")}
   <div class="sechead"><h2>What to buy · ${groups.reduce((a,g)=>a+g.items.length,0)}</h2>${est?`<span class="note">about ${money(est)}</span>`:""}</div>
   ${groups.map(g=>`<div class="panel" style="margin-bottom:14px"><div class="sechead" style="margin-bottom:4px"><h2 style="margin:0"><a href="#p-${esc(g.p.id)}" style="color:inherit;text-decoration:none">${esc(g.p.name)}</a></h2><span class="note">${esc(g.p.status||"")}</span></div>
-    <div class="tablewrap" style="box-shadow:none"><table class="t"><tbody>${g.items.map(m=>`<tr><td><b>${esc(m.name)}</b><div class="note">${esc([m.kind||"Supply",typeof m.qty==="number"?`${m.qty} ${m.unit||""}`.trim():"",m.taskId?taskLabel(g.p,m.taskId):""].filter(Boolean).join(" · "))}</div></td>
+    <div class="tablewrap" style="box-shadow:none"><table class="t"><tbody>${g.items.map(m=>`<tr><td><b>${esc(m.name)}</b><div class="note">${esc([m.kind||"Supply",typeof m.qty==="number"?`${m.qty} ${m.unit||""}`.trim():"",tasksLabel(g.p,m)].filter(Boolean).join(" · "))}</div></td>
       <td class="note" style="white-space:nowrap">${money(m.estCost)}</td><td>${buyHTML(m)}</td><td>${canWrite?`<button class="btn small" data-pact="bought" data-p="${esc(g.p.id)}" data-m="${esc(m.id)}">✓ Bought</button>`:""}</td></tr>`).join("")}</tbody></table></div></div>`).join("")||`<div class="note">Nothing to buy for open projects. Nice.</div>`}`;
 }
 function projDialog(p){
@@ -1493,22 +1496,22 @@ function taskDialog(p,h,t){
     <label class="full">Link<input name="url" value="${esc(t.url||"")}" placeholder="https://… (how-to, product page)"></label>
     <label class="full">Notes<textarea name="notes" rows="3">${esc(t.notes||"")}</textarea></label>
     <div class="full"><div class="note" style="margin-bottom:4px">Supplies &amp; tools for this task</div>
-      ${(()=>{const mine=(p.materials||[]).filter(m=>m.taskId===t.id); const others=(p.materials||[]).filter(m=>m.taskId!==t.id);
+      ${(()=>{const mine=(p.materials||[]).filter(m=>mTasks(m).includes(t.id)); const others=(p.materials||[]).filter(m=>!mTasks(m).includes(t.id));
         return `<div class="chips">${mine.map(m=>`<span class="chip">${matHave(m)?"✓":"•"} ${esc(m.name)}${typeof m.qty==="number"?` ×${m.qty}`:""} <button class="btn small ghost" style="padding:0 4px" type="button" data-pact="unlinkmat" data-m="${esc(m.id)}" data-h="${esc(h.id)}" data-t="${esc(t.id)}" title="Unlink from this task">×</button></span>`).join("")||'<span class="hint">None yet.</span>'}</div>
-        <div class="toolbar" style="margin:8px 0 0">${others.length?`<select name="linkmat" style="flex:1"><option value="">Link an existing project item…</option>${others.map(m=>`<option value="${esc(m.id)}">${esc(m.name)}${m.taskId?` (now: ${esc(taskLabel(p,m.taskId))})`:""}</option>`).join("")}</select>`:""}<button class="btn small" type="button" data-pact="addmat" data-h="${esc(h.id)}" data-t="${esc(t.id)}">+ Supply/tool</button></div>`})()}
+        <div class="toolbar" style="margin:8px 0 0">${others.length?`<select name="linkmat" style="flex:1"><option value="">Link an existing project item…</option>${others.map(m=>`<option value="${esc(m.id)}">${esc(m.name)}${mTasks(m).length?` (also: ${esc(tasksLabel(p,m))})`:""}</option>`).join("")}</select>`:""}<button class="btn small" type="button" data-pact="addmat" data-h="${esc(h.id)}" data-t="${esc(t.id)}">+ Supply/tool</button></div>`})()}
     </div>
     ${people.length?"":`<p class="hint full">Add names under ⚙ Settings → People to assign tasks.</p>`}
     <div class="full editbar"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" data-close>Cancel</button><span style="flex:1"></span><button class="btn danger" type="button" data-pact="deltask" data-h="${esc(h.id)}" data-t="${esc(t.id)}">Delete task</button></div></form>`,
   async f=>{
     const g=k=>String(f.get(k)||"").trim(); const n=k=>{const v=parseNum(g(k));return typeof v==="number"?v:""}; const url=g("url");
     Object.assign(t,{text:g("text")||t.text,due:parseDateInput(g("due")),assignee:g("assignee"),estCost:n("estCost"),actCost:n("actCost"),url:/^https?:\/\//i.test(url)?url:"",notes:g("notes")});
-    const lm=g("linkmat"); if(lm){ const mm=(p.materials||[]).find(x=>x.id===lm); if(mm) mm.taskId=t.id }
+    const lm=g("linkmat"); if(lm){ const mm=(p.materials||[]).find(x=>x.id===lm); if(mm) setTasks(mm,[...mTasks(mm),t.id]) }
     const nh=g("hid"); if(nh&&nh!==h.id){ const dest=findH(p,nh); if(dest){ h.tasks=h.tasks.filter(x=>x.id!==t.id); dest.tasks=[...(dest.tasks||[]),t] } }
     await saveProj(p);
   });
 }
 function matDialog(p,m,presetTask){
-  const isNew=!m; m=m||{kind:"Supply",status:"need",unit:"ea",taskId:presetTask||""};
+  const isNew=!m; m=m||{kind:"Supply",status:"need",unit:"ea",taskIds:presetTask?[presetTask]:[]};
   const tasks=allTasks(p); const plist=[...parts].sort((a,b)=>String(a.name).localeCompare(String(b.name)));
   modal(`<h2>${isNew?"Add supply or tool":"Edit "+esc(m.name)}</h2><form class="form" style="background:none;padding:0">
     <label class="full">Item<input name="name" value="${esc(m.name||"")}" placeholder="e.g. Thinset 50 lb, tile saw" required></label>
@@ -1516,7 +1519,7 @@ function matDialog(p,m,presetTask){
     <label>Status<select name="status"><option value="need" ${m.status!=="have"?"selected":""}>Need</option><option value="have" ${m.status==="have"?"selected":""}>Have</option></select></label>
     <label>Qty<input name="qty" inputmode="decimal" value="${typeof m.qty==="number"?m.qty:""}"></label>
     <label>Unit<input name="unit" value="${esc(m.unit||"ea")}" placeholder="ea, box, gal, ft"></label>
-    <label class="full">For task<select name="taskId"><option value="">Whole project</option>${tasks.map(({h,t})=>`<option value="${esc(t.id)}" ${t.id===m.taskId?"selected":""}>${esc(h.title)} › ${esc(t.text)}</option>`).join("")}</select></label>
+    <div class="full"><div class="note" style="margin-bottom:4px">For tasks <span class="hint">(pick any; none = whole project)</span></div><div class="checkgrid">${tasks.map(({h,t})=>`<label><input type="checkbox" name="taskIds" value="${esc(t.id)}" ${mTasks(m).includes(t.id)?"checked":""}> ${esc(h.title)} › ${esc(t.text)}</label>`).join("")||'<span class="hint">No tasks yet</span>'}</div></div>
     <label>Estimated cost ($)<input name="estCost" inputmode="decimal" value="${typeof m.estCost==="number"?m.estCost:""}"></label>
     <label>Actual cost ($)<input name="actCost" inputmode="decimal" value="${typeof m.actCost==="number"?m.actCost:""}"></label>
     <label class="full">Buy link<input name="url" value="${esc(m.url||"")}" placeholder="https://www.amazon.com/…"></label>
@@ -1526,8 +1529,8 @@ function matDialog(p,m,presetTask){
     <div class="full editbar"><button class="btn primary" type="submit">${isNew?"Add":"Save"}</button><button class="btn" type="button" data-close>Cancel</button>${!isNew?`<span style="flex:1"></span><button class="btn danger" type="button" data-pact="delmat" data-m="${esc(m.id)}">Delete</button>`:""}</div></form>`,
   async f=>{
     const g=k=>String(f.get(k)||"").trim(); const n=k=>{const v=parseNum(g(k));return typeof v==="number"?v:""}; const url=g("url");
-    Object.assign(m,{name:g("name"),kind:g("kind"),status:g("status"),qty:n("qty"),unit:g("unit")||"ea",taskId:g("taskId"),estCost:n("estCost"),actCost:n("actCost"),url:/^https?:\/\//i.test(url)?url:"",vendor:/amazon\./i.test(url)?"Amazon":"",partId:g("partId"),addToInv:!!f.get("addToInv"),notes:g("notes")});
-    if(isNew){ m.id=uid(); p.materials=[...(p.materials||[]),m] }
+    Object.assign(m,{name:g("name"),kind:g("kind"),status:g("status"),qty:n("qty"),unit:g("unit")||"ea",taskIds:[...new Set(f.getAll("taskIds").map(String))],estCost:n("estCost"),actCost:n("actCost"),url:/^https?:\/\//i.test(url)?url:"",vendor:/amazon\./i.test(url)?"Amazon":"",partId:g("partId"),addToInv:!!f.get("addToInv"),notes:g("notes")});
+    delete m.taskId; if(isNew){ m.id=uid(); p.materials=[...(p.materials||[]),m] }
     await saveProj(p);
   });
 }
@@ -1550,15 +1553,15 @@ document.addEventListener("click",e=>{
   if(act==="editproj") return projDialog(p);
   if(act==="delproj"){ confirmDelete(p.name,async()=>{ await db.doc(`projects/${p.id}`).delete(); location.hash="projects" }); return }
   if(act==="edittask"){ const h=findH(p,d.h), t=findT(p,d.h,d.t); if(h&&t) taskDialog(p,h,t); return }
-  if(act==="deltask"){ const h=findH(p,d.h); document.querySelector(".modal")?.remove(); confirmDelete("this task",async()=>{ h.tasks=h.tasks.filter(x=>x.id!==d.t); p.materials=(p.materials||[]).map(m=>m.taskId===d.t?{...m,taskId:""}:m); await saveProj(p) }); return }
+  if(act==="deltask"){ const h=findH(p,d.h); document.querySelector(".modal")?.remove(); confirmDelete("this task",async()=>{ h.tasks=h.tasks.filter(x=>x.id!==d.t); (p.materials||[]).forEach(m=>{ if(mTasks(m).includes(d.t)) setTasks(m,mTasks(m).filter(x=>x!==d.t)) }); await saveProj(p) }); return }
   if(act==="edithead"){ const h=findH(p,d.h); if(h) headDialog(p,h); return }
-  if(act==="delhead"){ const h=findH(p,d.h); document.querySelector(".modal")?.remove(); confirmDelete(`"${h.title}"${(h.tasks||[]).length?` and its ${(h.tasks||[]).length} task(s)`:""}`,async()=>{ const ids=new Set((h.tasks||[]).map(t=>t.id)); p.headings=p.headings.filter(x=>x.id!==h.id); p.materials=(p.materials||[]).map(m=>ids.has(m.taskId)?{...m,taskId:""}:m); await saveProj(p) }); return }
+  if(act==="delhead"){ const h=findH(p,d.h); document.querySelector(".modal")?.remove(); confirmDelete(`"${h.title}"${(h.tasks||[]).length?` and its ${(h.tasks||[]).length} task(s)`:""}`,async()=>{ const ids=new Set((h.tasks||[]).map(t=>t.id)); p.headings=p.headings.filter(x=>x.id!==h.id); (p.materials||[]).forEach(m=>{ if(mTasks(m).some(x=>ids.has(x))) setTasks(m,mTasks(m).filter(x=>!ids.has(x))) }); await saveProj(p) }); return }
   if(act==="hup"||act==="hdown"){ moveIn(p.headings,p.headings.findIndex(h=>h.id===d.h),act==="hup"?-1:1); return saveProj(p) }
   if(act==="tup"||act==="tdown"){ const h=findH(p,d.h); moveIn(h.tasks,h.tasks.findIndex(t=>t.id===d.t),act==="tup"?-1:1); return saveProj(p) }
   if(act==="delsub"){ const t=findT(p,d.h,d.t); t.subtasks=(t.subtasks||[]).filter(s=>s.id!==d.s); if(t.subtasks.length) t.done=t.subtasks.every(s=>s.done); return saveProj(p) }
   if(act==="newmat") return matDialog(p);
   if(act==="addmat"){ document.querySelector(".modal")?.remove(); return matDialog(p,null,d.t) }
-  if(act==="unlinkmat"){ const m=(p.materials||[]).find(x=>x.id===d.m); if(m){ m.taskId=""; a.closest(".chip")?.remove(); saveProj(p) } return }
+  if(act==="unlinkmat"){ const m=(p.materials||[]).find(x=>x.id===d.m); if(m){ setTasks(m,mTasks(m).filter(x=>x!==d.t)); a.closest(".chip")?.remove(); saveProj(p) } return }
   if(act==="editmat"){ const m=(p.materials||[]).find(x=>x.id===d.m); if(m) matDialog(p,m); return }
   if(act==="delmat"){ document.querySelector(".modal")?.remove(); confirmDelete("this item",async()=>{ p.materials=p.materials.filter(x=>x.id!==d.m); await saveProj(p) }); return }
   if(act==="tmat"){ const m=p.materials.find(x=>x.id===d.m); if(!matHave(m)) return markBought(p,m); m.status="need"; return saveProj(p) }

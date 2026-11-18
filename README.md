@@ -44,7 +44,7 @@ Plan household projects as **Project → Heading → Task → Subtask** (for exa
 - Each task can have a **due date**, an **assignee** (names come from **⚙ Settings → People**), **estimated and actual cost**, **notes** and a **link**.
 - Checking the last subtask completes its task; checking a task completes all of its subtasks.
 - Projects have a status (Planning, Active, On hold, Done) and an optional target date and budget. Without a budget, the project total is the sum of the estimates.
-- **Supplies & tools**: list what the project needs, tie items to a task, add a buy link, and optionally link an item in your parts inventory (it counts as *Have* once you have enough on hand). **What to buy** gathers every needed item across open projects; **✓ Bought** records the cost and can add leftovers to the parts inventory.
+- **Supplies & tools**: list what the project needs, tie items to one or more tasks, add a buy link, and optionally link an item in your parts inventory (it counts as *Have* once you have enough on hand). **What to buy** gathers every needed item across open projects; **✓ Bought** records the cost and can add leftovers to the parts inventory.
 - Dated tasks of open projects show up on Overview, in the due sensors, reminders and the calendar feed (section *Projects*).
 
 ## Requirements
