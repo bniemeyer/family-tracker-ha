@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Housekeeper - Home Assistant app backend (maintenance for home, garage & gear).
+"""HouseKeeper - Home Assistant app backend (maintenance for home, garage & gear).
 
 Stdlib only: a tiny JSON document store on SQLite, photo blobs on disk,
 a long-poll change feed for the page, Home Assistant sensors/notifications
@@ -27,7 +27,7 @@ try:
 except ImportError:  # pragma: no cover
     ZoneInfo = None
 
-VERSION = "1.4.0"
+VERSION = "1.4.1"
 DATA_DIR = os.environ.get("FT_DATA", "/data")
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 BLOB_DIR = os.path.join(DATA_DIR, "blobs")
@@ -442,16 +442,16 @@ def publish_sensors():
         def attrs(lst):
             return [{"section": i["section"], "item": line_for(i), "due": i["date"].isoformat() if i.get("date") else None} for i in lst]
 
-        common = {"attribution": "Housekeeper"}
+        common = {"attribution": "HouseKeeper"}
         ha_call("POST", "/states/sensor.family_tracker_overdue", {"state": len(overdue), "attributes": {
-            **common, "friendly_name": "Housekeeper overdue", "icon": "mdi:alert-circle", "unit_of_measurement": "items", "items": attrs(overdue)}})
+            **common, "friendly_name": "HouseKeeper overdue", "icon": "mdi:alert-circle", "unit_of_measurement": "items", "items": attrs(overdue)}})
         ha_call("POST", "/states/sensor.family_tracker_due_soon", {"state": len(soon), "attributes": {
-            **common, "friendly_name": "Housekeeper due soon", "icon": "mdi:calendar-clock", "unit_of_measurement": "items", "items": attrs(soon)}})
+            **common, "friendly_name": "HouseKeeper due soon", "icon": "mdi:calendar-clock", "unit_of_measurement": "items", "items": attrs(soon)}})
         ha_call("POST", "/states/sensor.family_tracker_low_stock", {"state": len(low), "attributes": {
-            **common, "friendly_name": "Housekeeper low stock", "icon": "mdi:package-variant", "unit_of_measurement": "items", "items": attrs(low)}})
+            **common, "friendly_name": "HouseKeeper low stock", "icon": "mdi:package-variant", "unit_of_measurement": "items", "items": attrs(low)}})
         nxt = dated[0] if dated else None
         ha_call("POST", "/states/sensor.family_tracker_next_due", {"state": nxt["date"].isoformat() if nxt else "unknown", "attributes": {
-            **common, "friendly_name": "Housekeeper next due", "icon": "mdi:calendar-arrow-right", "device_class": "date",
+            **common, "friendly_name": "HouseKeeper next due", "icon": "mdi:calendar-arrow-right", "device_class": "date",
             "item": line_for(nxt) if nxt else None, "as_of": t.isoformat()}})
         HA_STATUS.update(connected=True, error="", last_publish=now().isoformat(timespec="seconds"))
     except Exception as e:  # noqa: BLE001
@@ -484,7 +484,7 @@ def run_reminder(force=False):
     names = []
     for i in due[:4]:
         names.append(i["title"].replace(" — ", " "))
-    title = f"Housekeeper: {len(due)} item{'s' if len(due) != 1 else ''} due"
+    title = f"HouseKeeper: {len(due)} item{'s' if len(due) != 1 else ''} due"
     lines, last = [], None
     for i in due:
         if i["section"] != last:
@@ -569,8 +569,8 @@ def ics_escape(s):
 def build_ics():
     _, items = collect_items(window=3650)
     stamp = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
-    out = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Housekeeper//EN", "CALSCALE:GREGORIAN",
-           "X-WR-CALNAME:Housekeeper"]
+    out = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//HouseKeeper//EN", "CALSCALE:GREGORIAN",
+           "X-WR-CALNAME:HouseKeeper"]
     for i in items:
         if not i.get("date") or i["kind"] == "low":
             continue
@@ -735,7 +735,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/import":
                 data = self.jbody()
                 if not isinstance(data, dict) or data.get("format") != "family-tracker-backup" or not isinstance(data.get("docs"), dict):
-                    raise ValueError("That isn't a Housekeeper backup file")
+                    raise ValueError("That isn't a HouseKeeper backup file")
                 n_blobs = 0
                 for bid, b in (data.get("blobs") or {}).items():
                     save_blob(base64.b64decode(b["data"]), b.get("type", "image/jpeg"), bid)
@@ -760,7 +760,7 @@ class Server(ThreadingHTTPServer):
 
 
 def main():
-    log(f"Housekeeper {VERSION} starting (data in {DATA_DIR}, HA API {'available' if SUPERVISOR_TOKEN else 'not available'})")
+    log(f"HouseKeeper {VERSION} starting (data in {DATA_DIR}, HA API {'available' if SUPERVISOR_TOKEN else 'not available'})")
     threading.Thread(target=scheduler, daemon=True).start()
     ics = Server(("0.0.0.0", ICS_PORT), Handler, ics_only=True)
     threading.Thread(target=ics.serve_forever, daemon=True).start()

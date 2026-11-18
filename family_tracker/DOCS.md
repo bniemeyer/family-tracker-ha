@@ -1,4 +1,4 @@
-# Housekeeper
+# HouseKeeper
 
 *Maintenance for home, garage & gear.*
 
@@ -6,10 +6,10 @@ Garage (vehicles, service history, photos, parts & tools), home maintenance, and
 
 ## First run
 
-1. Start the app and open **Housekeeper** from the sidebar.
+1. Start the app and open **HouseKeeper** from the sidebar.
 2. Go to **⚙ Settings → Import backup…** and pick your `family-tracker-backup-*.json` file. Everything (records and photos) loads in one step.
 
-New here? Import [`samples/starter-backup.json`](https://raw.githubusercontent.com/bniemeyer/family-tracker-ha/main/samples/starter-backup.json). It has one car, a few parts, home tasks and checklists so you can see how things fit together. An import **replaces** all existing data, so only use it on a fresh install. See the [README](https://github.com/bniemeyer/family-tracker-ha#readme) for the full guide.
+New here? Import [`samples/starter-backup.json`](https://raw.githubusercontent.com/bniemeyer/housekeeper-ha/main/samples/starter-backup.json). It has one car, a few parts, home tasks and checklists so you can see how things fit together. An import **replaces** all existing data, so only use it on a fresh install. See the [README](https://github.com/bniemeyer/housekeeper-ha#readme) for the full guide.
 
 ## Reminders
 
