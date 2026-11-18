@@ -27,7 +27,7 @@ try:
 except ImportError:  # pragma: no cover
     ZoneInfo = None
 
-VERSION = "1.4.1"
+VERSION = "1.5.0"
 DATA_DIR = os.environ.get("FT_DATA", "/data")
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 BLOB_DIR = os.path.join(DATA_DIR, "blobs")
@@ -369,6 +369,18 @@ def collect_items(t=None, window=None):
         complete = (start_date(c.get("completedAt")) and start_date(c.get("completedAt")) >= ws) or (its and done == len(its))
         add(section="Seasonal", key=f"{d['id']}|season|{ws.strftime('%Y-%m')}", title=c.get("name", "Checklist"), date=due,
             link=f"s-{d['id']}", kind="season", window_start=ws, complete=bool(complete), progress=f"{done}/{len(its)} done")
+    for d in STORE.list("projects"):
+        pj = d["data"]
+        if pj.get("status") == "Done":
+            continue
+        for h in pj.get("headings") or []:
+            for tk in h.get("tasks") or []:
+                if tk.get("done") or not is_date(tk.get("due")):
+                    continue
+                who = f" ({tk['assignee']})" if tk.get("assignee") else ""
+                add(section="Projects", key=f"{d['id']}|task|{tk.get('id')}",
+                    title=f"{pj.get('name', 'Project')} — {tk.get('text', 'Task')}{who}",
+                    date=due_date(tk["due"]), link=f"p-{d['id']}", kind="project")
     for d in STORE.list("parts"):
         p = d["data"]
         if num(p.get("qty")) is not None and num(p.get("minQty")) is not None and p["qty"] <= p["minQty"]:
@@ -394,7 +406,7 @@ def collect_items(t=None, window=None):
             if not (it["date"] and it["date"] <= horizon):
                 continue
         due_items.append(it)
-    order = {"Garage": 0, "Home": 1, "Seasonal": 2, "Low stock": 3}
+    order = {"Garage": 0, "Home": 1, "Seasonal": 2, "Projects": 3, "Low stock": 4}
     due_items.sort(key=lambda i: (order[i["section"]], i.get("days") if i.get("days") is not None else -9999))
     return due_items, items
 
@@ -430,6 +442,26 @@ def ha_call(method, path, body=None, timeout=10):
         return json.loads(raw) if raw else None
 
 
+def project_needs():
+    """Supplies/tools still needed across open projects (status not Done)."""
+    parts = {x["id"]: x["data"] for x in STORE.list("parts")}
+    out = []
+    for d in STORE.list("projects"):
+        pj = d["data"]
+        if pj.get("status") == "Done":
+            continue
+        for m in pj.get("materials") or []:
+            need = num(m.get("qty")) or 1
+            part = parts.get(m.get("partId") or "")
+            have = m.get("status") == "have" or (part is not None and num(part.get("qty")) is not None and part["qty"] >= need)
+            if have:
+                continue
+            qty = f"{need:g} {m.get('unit') or ''}".strip() if num(m.get("qty")) else ""
+            out.append({"project": pj.get("name", "Project"), "item": m.get("name", "Item"), "kind": m.get("kind", "Supply"),
+                        "qty": qty, "url": m.get("url") or None})
+    return out
+
+
 def publish_sensors():
     try:
         due, _ = collect_items()
@@ -453,6 +485,9 @@ def publish_sensors():
         ha_call("POST", "/states/sensor.family_tracker_next_due", {"state": nxt["date"].isoformat() if nxt else "unknown", "attributes": {
             **common, "friendly_name": "HouseKeeper next due", "icon": "mdi:calendar-arrow-right", "device_class": "date",
             "item": line_for(nxt) if nxt else None, "as_of": t.isoformat()}})
+        needs = project_needs()
+        ha_call("POST", "/states/sensor.family_tracker_shopping", {"state": len(needs), "attributes": {
+            **common, "friendly_name": "HouseKeeper to buy", "icon": "mdi:cart", "unit_of_measurement": "items", "items": needs}})
         HA_STATUS.update(connected=True, error="", last_publish=now().isoformat(timespec="seconds"))
     except Exception as e:  # noqa: BLE001
         HA_STATUS.update(connected=False, error=str(e)[:200])

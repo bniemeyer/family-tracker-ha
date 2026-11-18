@@ -178,6 +178,23 @@ a.chip{text-decoration:none;color:var(--ink)}
 .rowlist .r .what{flex:1;min-width:0}
 .rowlist .r .what b{font-weight:600}
 .rowlist .r .what .note{display:block}
+.tk{display:flex;gap:10px;align-items:flex-start;padding:8px 2px;border-top:1px solid var(--line)}
+.panel>.tk:first-of-type,.subs>.tk:first-child{border-top:0}
+.tk>input[type=checkbox]{width:19px;height:19px;margin-top:2px;accent-color:var(--accent);flex:none;cursor:pointer}
+.tk .tx{flex:1;min-width:0}
+.tk .tt{cursor:pointer;font-weight:600}
+.tk.done>.tx>.tt,.tk.stk.done>.tx{color:var(--ink3);text-decoration:line-through}
+.tk-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}.tk-meta:empty{display:none}
+.subs{margin-top:4px}
+.tk.stk{padding:4px 0;border-top:0;align-items:center}
+.tk.stk>input[type=checkbox]{width:16px;height:16px;margin-top:0}
+.tk-act{display:flex;gap:2px;flex:none}
+.addline input{width:100%;padding:6px 9px;border:1px dashed var(--line);border-radius:8px;background:transparent;margin-top:6px}
+.addline.panel{padding:6px 10px}.addline.panel input{border:0;margin:0}
+.addline[data-pform="sub"] input{border-color:transparent;font-size:13px;padding:2px 9px;margin-top:2px;color:var(--ink2)}
+.addline input:focus{border-color:var(--accent);outline:none}
+select[data-pact]{padding:5px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--ink);font-weight:600}
+[data-theme=glass] select[data-pact]{border:.5px solid var(--edge);border-radius:12px;background:var(--form)}
 .seclabel{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin:22px 0 8px;font-weight:600}
 /* segmented control (Settings → Appearance) */
 .kv.appear{grid-template-columns:auto 1fr}
@@ -392,6 +409,7 @@ let vehicles=[], meta=null, loaded=false, loadErr=null, staleNote=false;
 let route={view:"home"}, editing=false, serviceUnsub=null, serviceList=[], serviceLoaded=false, showAddService=false;
 let syncState={status:"idle",at:null,msg:""}, syncTimer=null, syncRunning=false, syncPending=false;
 let parts=[], homeTasks=[], equipment=[], checklists=[];
+let projects=[], people=[], projFilter="";
 let logUnsub=null, logList=[], logLoaded=false, showAddLog=false;
 let pf={q:"",veh:"",kind:"",low:false};
 const HOME_SOON=30, SEASON_GRACE=60;
@@ -491,8 +509,11 @@ function render(){
   if(route.view==="aparts") return renderApplParts();
   if(route.view==="home") return renderHomeTab();
   if(route.view==="seasonal") return renderSeasonal();
+  if(route.view==="project"){ const p=projects.find(x=>x.id===route.id); if(p) return renderProject(p); }
+  if(route.view==="projects") return renderProjects();
+  if(route.view==="shopping") return renderShopping();
   if(route.view==="settings") return renderSettings();
-  if(["vehicle","task","list"].includes(route.view)){ $("#app").innerHTML=`${topHTML("")}<div class="note">That item isn't here anymore. <a href="#">Back to overview</a></div>`; return }
+  if(["vehicle","task","list","project"].includes(route.view)){ $("#app").innerHTML=`${topHTML("")}<div class="note">That item isn't here anymore. <a href="#">Back to overview</a></div>`; return }
   renderOverview();
 }
 /* ---------- tracker-wide status ---------- */
@@ -538,6 +559,7 @@ function allDue(){
   for(const t of homeTasks.filter(t=>t.status!=="archived")){ const s=taskStatus(t); if(s.key==="bad"||s.key==="soon") out.push({sec:"Home",go:"h-"+t.id,title:t.name,what:`Due ${s.short}`,s}) }
   for(const c of checklists){ const s=listStatus(c); if(s.key==="bad"||s.key==="soon") out.push({sec:"Seasonal",go:"s-"+c.id,title:c.name,what:`${s.short} · ${s.nDone}/${s.total} done`,s}) }
   for(const e of equipment){ const s=warrantyStatus(e); if(s&&s.key==="soon") out.push({sec:"Home",go:isApplEquip(e)?"appliances":"home",title:e.name,what:s.short,s}) }
+  for(const p of projects.filter(p=>p.status!=="Done")) for(const {t} of allTasks(p)){ if(t.done) continue; const s=dueSt(t.due); if(s&&(s.key==="bad"||s.key==="soon")) out.push({sec:"Projects",go:"p-"+p.id,title:`${p.name} — ${t.text}`,what:`Due ${s.short}${t.assignee?` · ${t.assignee}`:""}`,s}) }
   out.sort((a,b)=>(a.s.key==="bad"?0:1)-(b.s.key==="bad"?0:1)||((a.s.days??-1e9)-(b.s.days??-1e9)));
   return out;
 }
@@ -546,7 +568,7 @@ function topHTML(on){
   const cnt=sec=>{const l=due.filter(i=>i.sec===sec); if(!l.length) return ""; return `<span class="cnt ${l.some(i=>i.s.key==="bad")?"":"soon"}">${l.length}</span>`};
   const tab=(h,label,key,extra="")=>`<a href="#${h}" class="${on===key?"on":""}">${label}${extra}</a>`;
   return `<div class="top"><div class="brand"><h1>House<span>Keeper</span></h1><div class="tagline">Maintenance for home, garage &amp; gear</div>
-    <nav class="nav">${tab("","Overview","overview")}${tab("garage","Garage","garage",cnt("Garage"))}${tab("home","Home","home",cnt("Home"))}${tab("seasonal","Seasonal","seasonal",cnt("Seasonal"))}</nav></div>${syncHTML()}</div>
+    <nav class="nav">${tab("","Overview","overview")}${tab("garage","Garage","garage",cnt("Garage"))}${tab("home","Home","home",cnt("Home"))}${tab("seasonal","Seasonal","seasonal",cnt("Seasonal"))}${tab("projects","Projects","projects",cnt("Projects"))}</nav></div>${syncHTML()}</div>
   ${staleNote?`<div class="banner">Can't reach the tracker database right now. What you see may be out of date.</div>`:""}`;
 }
 function dueRowHTML(i){ return `<div class="row" data-hash="${esc(i.go)}"><span class="badge ${i.s.key}">${i.s.key==="bad"?"Overdue":"Soon"}</span><div class="what"><span class="cat">${esc(i.sec)}</span> <b>${esc(i.title)}</b> — ${esc(i.what)}</div><span class="note">${esc(i.s.rel||"")}</span></div>` }
@@ -571,6 +593,7 @@ function renderOverview(){
     <a class="tile" href="#garage"><h3>Garage</h3><div class="big">${active.length}</div><div class="note">active vehicles${secDue("Garage")?` · ${secDue("Garage")} due`:""}</div></a>
     <a class="tile" href="#parts"><h3>Parts &amp; tools</h3><div class="big">${garageParts().length}</div><div class="note">items on the shelf${garageParts().filter(partLow).length?` · ${garageParts().filter(partLow).length} low`:""}</div></a>
     <a class="tile" href="#home"><h3>Home</h3><div class="big">${tasks.length}</div><div class="note">recurring tasks · ${applEquip().length} appliances${applParts().filter(partLow).length?` · ${applParts().filter(partLow).length} parts low`:""}${secDue("Home")?` · ${secDue("Home")} due`:""}</div></a>
+    <a class="tile" href="#projects"><h3>Projects</h3><div class="big">${activeProjects().length}</div><div class="note">open${activeProjects().reduce((a,p)=>a+projStats(p).need,0)?` · ${activeProjects().reduce((a,p)=>a+projStats(p).need,0)} to buy`:""}${secDue("Projects")?` · ${secDue("Projects")} due`:""}</div></a>
     <a class="tile" href="#seasonal"><h3>Seasonal</h3><div class="big">${checklists.length}</div><div class="note">checklists${openLists.length?` · ${openLists.length} in season now`:""}</div></a>
   </div>`;
 }
@@ -1157,6 +1180,9 @@ function renderSettings(){
     <div class="editbar"><button class="btn small primary" data-act="remindnow">Send reminder now</button></div></div>
   </div>
   <div class="panels">
+    <div class="panel"><h2>People</h2><div class="chips">${people.map(n=>`<span class="chip">${esc(n)}${canWrite?` <button class="btn small ghost" style="padding:0 4px" data-pact="delperson" data-n="${esc(n)}" title="Remove">×</button>`:""}</span>`).join("")||'<span class="hint">No one yet.</span>'}</div>
+      ${canWrite?`<form class="toolbar" data-pform="person" style="margin-top:10px"><input name="text" placeholder="Add a name…" required style="flex:1"><button class="btn small" type="submit">Add</button></form>`:""}
+      <p class="hint">Used for "Assigned to" on project tasks.</p></div>
     <div class="panel"><h2>Appearance</h2><div class="kv appear">
       <div class="k">Theme</div><div class="v">${segHTML("theme",THEMES)}</div>
       <div class="k">Mode</div><div class="v">${segHTML("mode",MODES)}</div>
@@ -1302,7 +1328,7 @@ document.addEventListener("submit",e=>{
 function applyRoute(){
   const h=location.hash.replace(/^#/,"");
   const prev=route.id;
-  route=h.startsWith("v-")?{view:"vehicle",id:h.slice(2)}:h.startsWith("h-")?{view:"task",id:h.slice(2)}:h.startsWith("s-")?{view:"list",id:h.slice(2)}:["garage","parts","appliances","aparts","home","seasonal","settings"].includes(h)?{view:h}:{view:"overview"};
+  route=h.startsWith("v-")?{view:"vehicle",id:h.slice(2)}:h.startsWith("h-")?{view:"task",id:h.slice(2)}:h.startsWith("s-")?{view:"list",id:h.slice(2)}:h.startsWith("p-")?{view:"project",id:h.slice(2)}:["garage","parts","appliances","aparts","home","seasonal","projects","shopping","settings"].includes(h)?{view:h}:{view:"overview"};
   if(route.id!==prev){ editing=false; showAddService=false; showAddLog=false; subscribeService(); subscribeLog() }
   document.querySelector(".modal")?.remove();
   render(); window.scrollTo(0,0);
@@ -1323,6 +1349,230 @@ function subscribeService(){
   },()=>{ serviceLoaded=true; render() });
 }
 
+/* ---------- projects ---------- */
+const PSTATUS=["Planning","Active","On hold","Done"];
+const PSOON=14;
+let refocusUntil=0, refocusSel="";
+const uid=()=>Math.random().toString(36).slice(2,9);
+const money=n=>typeof n==="number"&&isFinite(n)?"$"+n.toLocaleString(undefined,{maximumFractionDigits:2}):"";
+const num0=v=>typeof v==="number"&&isFinite(v)?v:0;
+function dueSt(d){ if(!isDate(d)) return null; const days=daysUntil(dueDate(d)); return {key:days<0?"bad":days<=PSOON?"soon":"ok",short:fmt(d),days,rel:rel(days)} }
+function matHave(m){ if(m.status==="have") return true; if(m.partId){ const pt=parts.find(x=>x.id===m.partId); const need=typeof m.qty==="number"?m.qty:1; if(pt&&typeof pt.qty==="number"&&pt.qty>=need) return true } return false }
+function allTasks(p){ const out=[]; (p.headings||[]).forEach(h=>(h.tasks||[]).forEach(t=>out.push({h,t}))); return out }
+function countUnits(tasks){ let d=0,n=0; for(const t of tasks){ const s=t.subtasks||[]; if(s.length){ n+=s.length; d+=s.filter(x=>x.done).length } else { n++; if(t.done) d++ } } return {d,n} }
+function projStats(p){
+  const tasks=allTasks(p).map(x=>x.t); const {d,n}=countUnits(tasks);
+  let est=0,act=0,next=null;
+  for(const t of tasks){ est+=num0(t.estCost); act+=num0(t.actCost); if(!t.done&&isDate(t.due)&&(!next||t.due<next.due)) next=t }
+  let need=0,have=0; for(const m of p.materials||[]){ est+=num0(m.estCost); act+=num0(m.actCost); matHave(m)?have++:need++ }
+  const budget=typeof p.budget==="number"?p.budget:est;
+  return {done:d,total:n,pct:n?Math.round(d*100/n):0,budget,est,spent:act,need,have,next};
+}
+const activeProjects=()=>projects.filter(p=>p.status!=="Done");
+const curProj=()=>projects.find(x=>x.id===route.id);
+const findH=(p,hid)=>(p.headings||[]).find(h=>h.id===hid);
+const findT=(p,hid,tid)=>((findH(p,hid)||{}).tasks||[]).find(t=>t.id===tid);
+function moveIn(arr,i,d){ const j=i+d; if(i<0||j<0||j>=arr.length) return; [arr[i],arr[j]]=[arr[j],arr[i]] }
+function taskLabel(p,tid){ for(const {h,t} of allTasks(p)) if(t.id===tid) return `${h.title} › ${t.text}`; return "" }
+async function saveProj(p){ const data={...p}; delete data.id; data.updatedAt=new Date().toISOString(); render(); try{ await db.doc(`projects/${p.id}`).set(data) }catch(e){ toast("Couldn't save: "+(e.message||e.code)) } }
+async function savePeople(names){ people=names; render(); try{ await db.doc("meta/people").set({names}) }catch(e){ toast("Couldn't save: "+(e.message||e.code)) } }
+function personSel(){ return people.length?`<select data-pact="pfilter" title="Show tasks for"><option value="">Everyone</option>${people.map(n=>`<option ${projFilter===n?"selected":""}>${esc(n)}</option>`).join("")}</select>`:"" }
+function projSubnav(on){ const need=activeProjects().reduce((a,p)=>a+projStats(p).need,0); return `<div class="subnav"><a class="btn small ${on==="projects"?"primary":""}" href="#projects" style="text-decoration:none">Projects</a><a class="btn small ${on==="shopping"?"primary":""}" href="#shopping" style="text-decoration:none">What to buy${need?` · ${need}`:""}</a></div>` }
+function projCardHTML(p){
+  const s=projStats(p); const nx=s.next&&dueSt(s.next.due);
+  const who=[...new Set(allTasks(p).filter(({t})=>t.assignee&&!t.done).map(({t})=>t.assignee))];
+  return `<div class="card" data-hash="p-${esc(p.id)}" style="cursor:pointer"><div class="cb">
+    <div class="cat">${esc(p.status||"Planning")}${isDate(p.targetDate)?` · target ${esc(fmt(p.targetDate))}`:""}</div>
+    <h3>${esc(p.name)}</h3>
+    <div class="bar"><i style="width:${s.pct}%"></i></div>
+    <div class="sub">${s.done} of ${s.total} done${s.need?` · 🧰 ${s.need} to buy`:""}${s.budget||s.spent?` · ${money(s.spent)||"$0"} of ${money(s.budget)||"$0"}`:""}</div>
+    <div class="badges">${nx?`<span class="badge ${nx.key}">Next: ${esc(s.next.text)} · ${esc(nx.rel)}</span>`:""}${who.map(n=>`<span class="chip">👤 ${esc(n)}</span>`).join("")}</div>
+  </div></div>`;
+}
+function renderProjects(){
+  const mine=p=>!projFilter||allTasks(p).some(({t})=>t.assignee===projFilter&&!t.done);
+  const ord={"Active":0,"Planning":1,"On hold":2};
+  const open=projects.filter(p=>p.status!=="Done"&&mine(p)).sort((a,b)=>(ord[a.status||"Planning"]??3)-(ord[b.status||"Planning"]??3)||String(a.name).localeCompare(String(b.name)));
+  const done=projects.filter(p=>p.status==="Done"&&mine(p));
+  $("#app").innerHTML=`${topHTML("projects")}${projSubnav("projects")}
+  <div class="sechead"><h2>Projects · ${open.length}</h2><div class="editbar">${personSel()}${canWrite?`<button class="btn small primary" data-pact="newproj">+ New project</button>`:""}</div></div>
+  <div class="grid">${open.map(projCardHTML).join("")||`<div class="note">${projFilter?`Nothing open is assigned to ${esc(projFilter)}.`:"No projects yet. Start one for a remodel, a build or any household job, then break it into headings, tasks and subtasks."}</div>`}</div>
+  ${done.length?`<details class="gone"><summary>Completed · ${done.length}</summary><div class="grid">${done.map(projCardHTML).join("")}</div></details>`:""}`;
+}
+function projTaskHTML(p,h,t){
+  if(projFilter&&t.assignee!==projFilter) return "";
+  const ds=!t.done&&dueSt(t.due); const subs=t.subtasks||[]; const sd=subs.filter(s=>s.done).length;
+  const mats=(p.materials||[]).filter(m=>m.taskId===t.id);
+  const A=`data-h="${esc(h.id)}" data-t="${esc(t.id)}"`;
+  return `<div class="tk ${t.done?"done":""}">
+    <input type="checkbox" data-pact="ttask" ${A} ${t.done?"checked":""} ${canWrite?"":"disabled"}>
+    <div class="tx"><span class="tt" data-pact="edittask" ${A}>${esc(t.text)}</span>
+      <div class="tk-meta">${ds?`<span class="badge ${ds.key}">${ds.key==="ok"?esc(ds.short):esc(ds.rel)}</span>`:isDate(t.due)?`<span class="badge na">${esc(fmt(t.due))}</span>`:""}${t.assignee?`<span class="chip">👤 ${esc(t.assignee)}</span>`:""}${subs.length?`<span class="chip">${sd}/${subs.length}</span>`:""}${(t.estCost!==""&&t.estCost!=null)||(t.actCost!==""&&t.actCost!=null)?`<span class="chip">${money(t.actCost)||"—"} / ${money(t.estCost)||"—"}</span>`:""}${mats.length?`<span class="chip">🧰 ${mats.length}</span>`:""}${t.url?`<a class="chip" href="${esc(t.url)}" target="_blank" rel="noopener">↗ link</a>`:""}</div>
+      ${t.notes?`<div class="hint">${esc(t.notes)}</div>`:""}
+      ${subs.length?`<div class="subs">${subs.map(s=>`<div class="tk stk ${s.done?"done":""}"><input type="checkbox" data-pact="tsub" ${A} data-s="${esc(s.id)}" ${s.done?"checked":""} ${canWrite?"":"disabled"}><span class="tx">${esc(s.text)}</span>${canWrite?`<button class="btn small ghost" data-pact="delsub" ${A} data-s="${esc(s.id)}" title="Delete subtask">×</button>`:""}</div>`).join("")}</div>`:""}
+      ${canWrite?`<form class="addline" data-pform="sub" ${A}><input name="text" placeholder="+ subtask" autocomplete="off"></form>`:""}
+    </div>
+    ${canWrite?`<div class="tk-act"><button class="btn small ghost" data-pact="tup" ${A} title="Move up">↑</button><button class="btn small ghost" data-pact="tdown" ${A} title="Move down">↓</button></div>`:""}
+  </div>`;
+}
+function headingHTML(p,h){
+  const {d,n}=countUnits(h.tasks||[]); const H=`data-h="${esc(h.id)}"`;
+  return `<div class="panel" style="margin-bottom:14px">
+    <div class="sechead" style="margin-bottom:4px"><h2 style="margin:0">${esc(h.title)} <span class="note">${d}/${n}</span></h2>
+    ${canWrite?`<div class="editbar"><button class="btn small ghost" data-pact="hup" ${H} title="Move up">↑</button><button class="btn small ghost" data-pact="hdown" ${H} title="Move down">↓</button><button class="btn small ghost" data-pact="edithead" ${H} title="Rename / delete">✎</button></div>`:""}</div>
+    ${(h.tasks||[]).map(t=>projTaskHTML(p,h,t)).join("")||'<div class="note">No tasks yet.</div>'}
+    ${canWrite?`<form class="addline" data-pform="task" ${H}><input name="text" placeholder="+ Add a task…" autocomplete="off"></form>`:""}
+  </div>`;
+}
+function matsHTML(p){
+  const mats=p.materials||[]; const need=mats.filter(m=>!matHave(m)).length;
+  return `<div class="panel" style="margin-bottom:16px"><div class="sechead"><h2 style="margin:0">Supplies &amp; tools <span class="note">Need ${need} · Have ${mats.length-need}</span></h2>${canWrite?`<button class="btn small" data-pact="newmat">+ Item</button>`:""}</div>
+  ${mats.length?`<div class="tablewrap" style="box-shadow:none"><table class="t"><tbody>${mats.map(m=>{const have=matHave(m);const pt=m.partId&&parts.find(x=>x.id===m.partId);const tl=m.taskId&&taskLabel(p,m.taskId);
+    return `<tr class="${have?"":"low"}"><td style="width:1%"><button class="badge ${have?"ok":"soon"}" style="border:0;cursor:pointer" data-pact="tmat" data-m="${esc(m.id)}" ${canWrite?"":"disabled"} title="Toggle need / have">${have?"Have":"Need"}</button></td>
+    <td data-pact="editmat" data-m="${esc(m.id)}" style="cursor:pointer"><b>${esc(m.name)}</b><div class="note">${esc([m.kind||"Supply",typeof m.qty==="number"?`${m.qty} ${m.unit||""}`.trim():"",tl,pt?`on hand: ${typeof pt.qty==="number"?pt.qty:"?"}`:""].filter(Boolean).join(" · "))}</div>${m.notes?`<div class="hint">${esc(m.notes)}</div>`:""}</td>
+    <td class="note" style="white-space:nowrap">${money(m.actCost)||money(m.estCost)}</td><td>${buyHTML(m)}</td></tr>`}).join("")}</tbody></table></div>`:`<div class="note">List what you'll need to buy and the tools you'll use. Tie items to a task, add a buy link, and they show up under What to buy.</div>`}</div>`;
+}
+function renderProject(p){
+  const s=projStats(p);
+  $("#app").innerHTML=`<div class="top"><a class="btn back" href="#projects" style="text-decoration:none">← Projects</a>${syncHTML()}</div>
+  <div class="hinfo" style="margin-bottom:14px"><div class="cat">${isDate(p.targetDate)?"Target "+esc(fmt(p.targetDate)):"Project"}</div><h1>${esc(p.name)}</h1>
+    <div class="editbar"><select data-pact="pstatus" ${canWrite?"":"disabled"}>${PSTATUS.map(x=>`<option ${x===(p.status||"Planning")?"selected":""}>${x}</option>`).join("")}</select>
+      <span class="note">${s.done} of ${s.total} done · ${s.pct}%</span>${s.budget||s.spent?`<span class="note">· Spent ${money(s.spent)||"$0"} of ${money(s.budget)||"$0"}${typeof p.budget!=="number"&&s.est?" (estimated)":""}</span>`:""}
+      ${personSel()}${canWrite?`<button class="btn small" data-pact="editproj">Edit project</button>`:""}</div>
+    <div class="bar" style="margin-top:10px"><i style="width:${s.pct}%"></i></div></div>
+  ${p.notes?`<div class="panel" style="margin-bottom:14px"><h2>Notes</h2><div style="white-space:pre-wrap">${esc(p.notes)}</div></div>`:""}
+  ${(p.headings||[]).map(h=>headingHTML(p,h)).join("")}
+  ${canWrite?`<form class="addline panel" data-pform="head" style="margin-bottom:16px"><input name="text" placeholder="+ Add a heading (e.g. Demo, Plumbing, Paint)…" autocomplete="off"></form>`:""}
+  ${matsHTML(p)}`;
+  if(refocusSel&&Date.now()<refocusUntil){ const el=document.querySelector(refocusSel); el&&el.focus() }
+}
+function renderShopping(){
+  const groups=activeProjects().map(p=>({p,items:(p.materials||[]).filter(m=>!matHave(m))})).filter(g=>g.items.length);
+  const est=groups.reduce((a,g)=>a+g.items.reduce((b,m)=>b+num0(m.estCost),0),0);
+  $("#app").innerHTML=`${topHTML("projects")}${projSubnav("shopping")}
+  <div class="sechead"><h2>What to buy · ${groups.reduce((a,g)=>a+g.items.length,0)}</h2>${est?`<span class="note">about ${money(est)}</span>`:""}</div>
+  ${groups.map(g=>`<div class="panel" style="margin-bottom:14px"><div class="sechead" style="margin-bottom:4px"><h2 style="margin:0"><a href="#p-${esc(g.p.id)}" style="color:inherit;text-decoration:none">${esc(g.p.name)}</a></h2><span class="note">${esc(g.p.status||"")}</span></div>
+    <div class="tablewrap" style="box-shadow:none"><table class="t"><tbody>${g.items.map(m=>`<tr><td><b>${esc(m.name)}</b><div class="note">${esc([m.kind||"Supply",typeof m.qty==="number"?`${m.qty} ${m.unit||""}`.trim():"",m.taskId?taskLabel(g.p,m.taskId):""].filter(Boolean).join(" · "))}</div></td>
+      <td class="note" style="white-space:nowrap">${money(m.estCost)}</td><td>${buyHTML(m)}</td><td>${canWrite?`<button class="btn small" data-pact="bought" data-p="${esc(g.p.id)}" data-m="${esc(m.id)}">✓ Bought</button>`:""}</td></tr>`).join("")}</tbody></table></div></div>`).join("")||`<div class="note">Nothing to buy for open projects. Nice.</div>`}`;
+}
+function projDialog(p){
+  const isNew=!p; p=p||{status:"Planning",headings:[],materials:[]};
+  modal(`<h2>${isNew?"New project":"Edit project"}</h2><form class="form" style="background:none;padding:0">
+    <label class="full">Name<input name="name" value="${esc(p.name||"")}" placeholder="e.g. Basement bathroom remodel" required></label>
+    <label>Status<select name="status">${PSTATUS.map(x=>`<option ${x===(p.status||"Planning")?"selected":""}>${x}</option>`).join("")}</select></label>
+    <label>Target date<input name="targetDate" value="${esc(toInput(p.targetDate))}" placeholder="MM/DD/YYYY"></label>
+    <label>Budget ($)<input name="budget" inputmode="decimal" value="${typeof p.budget==="number"?p.budget:""}" placeholder="blank = sum of estimates"></label>
+    ${isNew?`<label class="full">Headings (one per line, optional)<textarea name="heads" rows="3" placeholder="Demo&#10;Plumbing&#10;Finish"></textarea></label>`:""}
+    <label class="full">Notes<textarea name="notes" rows="3">${esc(p.notes||"")}</textarea></label>
+    <div class="full editbar"><button class="btn primary" type="submit">${isNew?"Create":"Save"}</button><button class="btn" type="button" data-close>Cancel</button>${!isNew?`<span style="flex:1"></span><button class="btn danger" type="button" data-pact="delproj">Delete project</button>`:""}</div></form>`,
+  async f=>{
+    const g=k=>String(f.get(k)||"").trim(); const b=parseNum(g("budget"));
+    const data={...p,name:g("name"),status:g("status"),targetDate:parseDateInput(g("targetDate")),budget:typeof b==="number"?b:"",notes:g("notes")};
+    if(isNew){ data.headings=g("heads").split("\n").map(x=>x.trim()).filter(Boolean).map(t=>({id:uid(),title:t,tasks:[]})); data.materials=[]; data.createdAt=new Date().toISOString() }
+    const id=p.id||slug(data.name)+"-"+uid().slice(0,4); delete data.id; data.updatedAt=new Date().toISOString();
+    try{ await db.doc(`projects/${id}`).set(data); toast(isNew?"Project created":"Saved"); if(isNew) location.hash="p-"+id }catch(e){ toast("Couldn't save: "+(e.message||e.code)); return false }
+  });
+}
+function headDialog(p,h){
+  modal(`<h2>Heading</h2><form class="form" style="background:none;padding:0">
+    <label class="full">Title<input name="title" value="${esc(h.title)}" required></label>
+    <div class="full editbar"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" data-close>Cancel</button><span style="flex:1"></span><button class="btn danger" type="button" data-pact="delhead" data-h="${esc(h.id)}">Delete heading</button></div></form>`,
+  async f=>{ h.title=String(f.get("title")||"").trim()||h.title; await saveProj(p) });
+}
+function taskDialog(p,h,t){
+  const opts=people.includes(t.assignee)||!t.assignee?people:[...people,t.assignee];
+  modal(`<h2>Task</h2><form class="form" style="background:none;padding:0">
+    <label class="full">Task<input name="text" value="${esc(t.text)}" required></label>
+    <label>Heading<select name="hid">${(p.headings||[]).map(x=>`<option value="${esc(x.id)}" ${x.id===h.id?"selected":""}>${esc(x.title)}</option>`).join("")}</select></label>
+    <label>Due<input name="due" value="${esc(toInput(t.due))}" placeholder="MM/DD/YYYY"></label>
+    <label>Assigned to<select name="assignee"><option value="">—</option>${opts.map(n=>`<option ${n===t.assignee?"selected":""}>${esc(n)}</option>`).join("")}</select></label>
+    <label>Estimated cost ($)<input name="estCost" inputmode="decimal" value="${typeof t.estCost==="number"?t.estCost:""}"></label>
+    <label>Actual cost ($)<input name="actCost" inputmode="decimal" value="${typeof t.actCost==="number"?t.actCost:""}"></label>
+    <label class="full">Link<input name="url" value="${esc(t.url||"")}" placeholder="https://… (how-to, product page)"></label>
+    <label class="full">Notes<textarea name="notes" rows="3">${esc(t.notes||"")}</textarea></label>
+    ${people.length?"":`<p class="hint full">Add names under ⚙ Settings → People to assign tasks.</p>`}
+    <div class="full editbar"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" data-close>Cancel</button><span style="flex:1"></span><button class="btn danger" type="button" data-pact="deltask" data-h="${esc(h.id)}" data-t="${esc(t.id)}">Delete task</button></div></form>`,
+  async f=>{
+    const g=k=>String(f.get(k)||"").trim(); const n=k=>{const v=parseNum(g(k));return typeof v==="number"?v:""}; const url=g("url");
+    Object.assign(t,{text:g("text")||t.text,due:parseDateInput(g("due")),assignee:g("assignee"),estCost:n("estCost"),actCost:n("actCost"),url:/^https?:\/\//i.test(url)?url:"",notes:g("notes")});
+    const nh=g("hid"); if(nh&&nh!==h.id){ const dest=findH(p,nh); if(dest){ h.tasks=h.tasks.filter(x=>x.id!==t.id); dest.tasks=[...(dest.tasks||[]),t] } }
+    await saveProj(p);
+  });
+}
+function matDialog(p,m){
+  const isNew=!m; m=m||{kind:"Supply",status:"need",unit:"ea"};
+  const tasks=allTasks(p); const plist=[...parts].sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  modal(`<h2>${isNew?"Add supply or tool":"Edit "+esc(m.name)}</h2><form class="form" style="background:none;padding:0">
+    <label class="full">Item<input name="name" value="${esc(m.name||"")}" placeholder="e.g. Thinset 50 lb, tile saw" required></label>
+    <label>Type<select name="kind">${["Supply","Tool"].map(k=>`<option ${k===m.kind?"selected":""}>${k}</option>`).join("")}</select></label>
+    <label>Status<select name="status"><option value="need" ${m.status!=="have"?"selected":""}>Need</option><option value="have" ${m.status==="have"?"selected":""}>Have</option></select></label>
+    <label>Qty<input name="qty" inputmode="decimal" value="${typeof m.qty==="number"?m.qty:""}"></label>
+    <label>Unit<input name="unit" value="${esc(m.unit||"ea")}" placeholder="ea, box, gal, ft"></label>
+    <label class="full">For task<select name="taskId"><option value="">Whole project</option>${tasks.map(({h,t})=>`<option value="${esc(t.id)}" ${t.id===m.taskId?"selected":""}>${esc(h.title)} › ${esc(t.text)}</option>`).join("")}</select></label>
+    <label>Estimated cost ($)<input name="estCost" inputmode="decimal" value="${typeof m.estCost==="number"?m.estCost:""}"></label>
+    <label>Actual cost ($)<input name="actCost" inputmode="decimal" value="${typeof m.actCost==="number"?m.actCost:""}"></label>
+    <label class="full">Buy link<input name="url" value="${esc(m.url||"")}" placeholder="https://www.amazon.com/…"></label>
+    <label class="full">From inventory (optional)<select name="partId"><option value="">—</option>${plist.map(x=>`<option value="${esc(x.id)}" ${x.id===m.partId?"selected":""}>${esc(x.name)}${typeof x.qty==="number"?` (${x.qty} on hand)`:""}</option>`).join("")}</select></label>
+    <label class="full" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" name="addToInv" style="width:auto" ${m.addToInv?"checked":""}> Add leftovers to the parts inventory when bought</label>
+    <label class="full">Notes<textarea name="notes" rows="2">${esc(m.notes||"")}</textarea></label>
+    <div class="full editbar"><button class="btn primary" type="submit">${isNew?"Add":"Save"}</button><button class="btn" type="button" data-close>Cancel</button>${!isNew?`<span style="flex:1"></span><button class="btn danger" type="button" data-pact="delmat" data-m="${esc(m.id)}">Delete</button>`:""}</div></form>`,
+  async f=>{
+    const g=k=>String(f.get(k)||"").trim(); const n=k=>{const v=parseNum(g(k));return typeof v==="number"?v:""}; const url=g("url");
+    Object.assign(m,{name:g("name"),kind:g("kind"),status:g("status"),qty:n("qty"),unit:g("unit")||"ea",taskId:g("taskId"),estCost:n("estCost"),actCost:n("actCost"),url:/^https?:\/\//i.test(url)?url:"",vendor:/amazon\./i.test(url)?"Amazon":"",partId:g("partId"),addToInv:!!f.get("addToInv"),notes:g("notes")});
+    if(isNew){ m.id=uid(); p.materials=[...(p.materials||[]),m] }
+    await saveProj(p);
+  });
+}
+async function markBought(p,m){
+  m.status="have"; if(m.actCost===""||m.actCost==null) m.actCost=typeof m.estCost==="number"?m.estCost:"";
+  if(m.addToInv&&!m.partId){
+    const id=slug(m.name)+"-"+uid().slice(0,4);
+    const part={kind:m.kind==="Tool"?"Tool":"Consumable",category:"Other",name:m.name,brand:"",partNumber:"",altNumbers:"",fits:["house"],qty:typeof m.qty==="number"?m.qty:1,minQty:"",unit:m.unit||"ea",location:"",vendor:m.vendor||"",price:"",url:m.url||"",notes:`Bought for ${p.name}`,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+    try{ await db.doc(`parts/${id}`).set(part); m.partId=id }catch(e){ toast("Couldn't add to inventory: "+(e.message||e.code)) }
+  }
+  await saveProj(p); toast(`${m.name}: bought`);
+}
+document.addEventListener("click",e=>{
+  const a=e.target.closest("[data-pact]"); if(!a||a.tagName==="SELECT"||a.type==="checkbox") return;
+  const d=a.dataset, act=d.pact; let p=curProj();
+  if(act==="newproj") return projDialog();
+  if(act==="bought"){ const pp=projects.find(x=>x.id===d.p); const m=pp&&(pp.materials||[]).find(x=>x.id===d.m); if(m) markBought(pp,m); return }
+  if(act==="delperson"){ savePeople(people.filter(n=>n!==d.n)); return }
+  if(!p||!canWrite) return;
+  if(act==="editproj") return projDialog(p);
+  if(act==="delproj"){ confirmDelete(p.name,async()=>{ await db.doc(`projects/${p.id}`).delete(); location.hash="projects" }); return }
+  if(act==="edittask"){ const h=findH(p,d.h), t=findT(p,d.h,d.t); if(h&&t) taskDialog(p,h,t); return }
+  if(act==="deltask"){ const h=findH(p,d.h); document.querySelector(".modal")?.remove(); confirmDelete("this task",async()=>{ h.tasks=h.tasks.filter(x=>x.id!==d.t); p.materials=(p.materials||[]).map(m=>m.taskId===d.t?{...m,taskId:""}:m); await saveProj(p) }); return }
+  if(act==="edithead"){ const h=findH(p,d.h); if(h) headDialog(p,h); return }
+  if(act==="delhead"){ const h=findH(p,d.h); document.querySelector(".modal")?.remove(); confirmDelete(`"${h.title}"${(h.tasks||[]).length?` and its ${(h.tasks||[]).length} task(s)`:""}`,async()=>{ const ids=new Set((h.tasks||[]).map(t=>t.id)); p.headings=p.headings.filter(x=>x.id!==h.id); p.materials=(p.materials||[]).map(m=>ids.has(m.taskId)?{...m,taskId:""}:m); await saveProj(p) }); return }
+  if(act==="hup"||act==="hdown"){ moveIn(p.headings,p.headings.findIndex(h=>h.id===d.h),act==="hup"?-1:1); return saveProj(p) }
+  if(act==="tup"||act==="tdown"){ const h=findH(p,d.h); moveIn(h.tasks,h.tasks.findIndex(t=>t.id===d.t),act==="tup"?-1:1); return saveProj(p) }
+  if(act==="delsub"){ const t=findT(p,d.h,d.t); t.subtasks=(t.subtasks||[]).filter(s=>s.id!==d.s); if(t.subtasks.length) t.done=t.subtasks.every(s=>s.done); return saveProj(p) }
+  if(act==="newmat") return matDialog(p);
+  if(act==="editmat"){ const m=(p.materials||[]).find(x=>x.id===d.m); if(m) matDialog(p,m); return }
+  if(act==="delmat"){ document.querySelector(".modal")?.remove(); confirmDelete("this item",async()=>{ p.materials=p.materials.filter(x=>x.id!==d.m); await saveProj(p) }); return }
+  if(act==="tmat"){ const m=p.materials.find(x=>x.id===d.m); if(!matHave(m)) return markBought(p,m); m.status="need"; return saveProj(p) }
+});
+document.addEventListener("change",e=>{
+  const a=e.target; if(!a.dataset||!a.dataset.pact) return; const d=a.dataset; const p=curProj();
+  if(d.pact==="pfilter"){ projFilter=a.value; render(); return }
+  if(!p||!canWrite) return;
+  if(d.pact==="pstatus"){ p.status=a.value; saveProj(p); if(a.value==="Done") toast("Project marked done 🎉") }
+  if(d.pact==="ttask"){ const t=findT(p,d.h,d.t); t.done=a.checked; t.doneAt=a.checked?todayISO():""; (t.subtasks||[]).forEach(s=>s.done=a.checked); saveProj(p) }
+  if(d.pact==="tsub"){ const t=findT(p,d.h,d.t); const s=(t.subtasks||[]).find(x=>x.id===d.s); s.done=a.checked; t.done=t.subtasks.every(x=>x.done); t.doneAt=t.done?todayISO():""; saveProj(p) }
+});
+document.addEventListener("submit",e=>{
+  const f=e.target; if(!f.dataset||!f.dataset.pform) return; e.preventDefault();
+  const text=String(new FormData(f).get("text")||"").trim(); if(!text) return; const d=f.dataset;
+  if(d.pform==="person"){ if(!people.includes(text)) savePeople([...people,text]); return }
+  const p=curProj(); if(!p||!canWrite) return;
+  if(d.pform==="head") p.headings=[...(p.headings||[]),{id:uid(),title:text,tasks:[]}];
+  if(d.pform==="task"){ const h=findH(p,d.h); h.tasks=[...(h.tasks||[]),{id:uid(),text,done:false,subtasks:[]}] }
+  if(d.pform==="sub"){ const t=findT(p,d.h,d.t); t.subtasks=[...(t.subtasks||[]),{id:uid(),text,done:false}]; t.done=false; t.doneAt="" }
+  refocusSel=`form[data-pform="${d.pform}"]${d.h?`[data-h="${d.h}"]`:""}${d.t?`[data-t="${d.t}"]`:""} input`; refocusUntil=Date.now()+5000;
+  saveProj(p);
+});
+
 /* ---------- boot ---------- */
 (async()=>{
   applyRoute();
@@ -1334,6 +1584,10 @@ function subscribeService(){
   refreshStatus(); setInterval(refreshStatus,60000);
   const timer=setTimeout(()=>{ staleNote=true; render() },10000);
   db.doc("meta/sheet").onSnapshot(s=>{ meta=s.exists?s.data():{footer:[],lastRows:0} },()=>{});
+  db.collection("projects").onSnapshot(s=>{ projects=s.docs.map(d=>({id:d.id,...d.data()}));
+    const ae=document.activeElement; if(ae&&ae.closest&&ae.closest(".addline")&&ae.value) return;
+    if(!loaded||editing||document.querySelector(".modal")) return; render() },()=>{});
+  db.doc("meta/people").onSnapshot(s=>{ people=(s.exists&&s.data().names)||[]; if(route.view==="settings"&&!document.querySelector(".modal")) render() },()=>{});
   db.doc("meta/appearance").onSnapshot(s=>{
     const before=appearance.theme+appearance.mode; applyAppearance(s.exists?s.data():null);
     if(route.view==="settings"&&before!==appearance.theme+appearance.mode&&!document.querySelector(".modal")) render();

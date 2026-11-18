@@ -32,6 +32,17 @@ Everything runs locally on your Home Assistant box. There's no cloud account and
 
 ---
 
+
+## Projects
+
+Plan household projects as **Project → Heading → Task → Subtask** (for example *Basement bathroom → Plumbing → Rough-in drain → Check slope*).
+
+- Each task can have a **due date**, an **assignee** (names come from **⚙ Settings → People**), **estimated and actual cost**, **notes** and a **link**.
+- Checking the last subtask completes its task; checking a task completes all of its subtasks.
+- Projects have a status (Planning, Active, On hold, Done) and an optional target date and budget. Without a budget, the project total is the sum of the estimates.
+- **Supplies & tools**: list what the project needs, tie items to a task, add a buy link, and optionally link an item in your parts inventory (it counts as *Have* once you have enough on hand). **What to buy** gathers every needed item across open projects; **✓ Bought** records the cost and can add leftovers to the parts inventory.
+- Dated tasks of open projects show up on Overview, in the due sensors, reminders and the calendar feed (section *Projects*).
+
 ## Requirements
 
 - Home Assistant **OS** or **Supervised**, because apps need the Supervisor. Container and Core installs can't run apps.
@@ -130,6 +141,7 @@ The app creates these sensors and updates them every 5 minutes and after any cha
 | `sensor.family_tracker_due_soon` | Number of items due within the due window | `items` |
 | `sensor.family_tracker_low_stock` | Number of parts at or below their minimum | `items` |
 | `sensor.family_tracker_next_due` | Date of the next due item | `item`, `as_of` |
+| `sensor.family_tracker_shopping` | Supplies and tools still needed across open projects | `items`: project, item, kind, qty, url |
 
 The app pushes these states to Home Assistant through its API; they don't come from an integration. After a Home Assistant restart they show *unknown* until the app's next update, which is within 5 minutes. **Settings → Update sensors now** refreshes them right away.
 

@@ -1,3 +1,10 @@
+## 1.5.0
+- New **Projects** tab: Project → Heading → Task → Subtask, with status, target date, budget and notes.
+- Tasks: due date, assigned person, estimated/actual cost, notes and a link; subtasks roll up into their task.
+- **Supplies & tools** per project with Need/Have, buy links, inventory linking, and a **What to buy** list across open projects.
+- **⚙ Settings → People** list for task assignment.
+- Dated project tasks feed Overview, due sensors, reminders and the calendar; new `sensor.family_tracker_shopping` lists items to buy.
+
 ## 1.4.1
 - Name styled **HouseKeeper** (capital K) everywhere it's shown.
 - GitHub repository renamed to `bniemeyer/housekeeper-ha` (the old URL redirects, so existing installs keep updating). Links and the "Add repository" badge updated.
