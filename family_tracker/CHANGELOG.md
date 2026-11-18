@@ -3,7 +3,7 @@
 - GitHub repository renamed to `bniemeyer/housekeeper-ha` (the old URL redirects, so existing installs keep updating). Links and the "Add repository" badge updated.
 
 ## 1.4.0
-- Renamed to **Housekeeper**, "Maintenance for home, garage & gear" (app name, sidebar panel, header with tagline, sensor friendly names, notifications, calendar name, docs).
+- Renamed to **HouseKeeper**, "Maintenance for home, garage & gear" (app name, sidebar panel, header with tagline, sensor friendly names, notifications, calendar name, docs).
 - No migration needed: the app slug (`family_tracker`), your data, `sensor.family_tracker_*` entity IDs, the `family_tracker_reminder` event and the backup file format are unchanged.
 
 ## 1.3.2

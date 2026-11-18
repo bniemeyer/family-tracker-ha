@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Reskin the Family Tracker UI to match HA's "Liquid Glass Tinted" theme.
+**Goal:** Reskin the HouseKeeper UI to match HA's "Liquid Glass Tinted" theme.
 **Architecture:** Replace the `<style>` block and font `<link>` in `family_tracker/app/static/index.html`; no JS/markup/server changes.
 **Tech Stack:** Plain CSS served by the add-on's Python http.server.
 **Spec:** docs/superpowers/specs/2026-11-17-liquid-glass-skin-design.md

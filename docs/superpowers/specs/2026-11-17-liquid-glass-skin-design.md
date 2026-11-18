@@ -1,8 +1,8 @@
-# Family Tracker — Liquid Glass skin
+# HouseKeeper — Liquid Glass skin
 
 ## Intent
-Make the Niemeyer Family Tracker app look like part of the same family as the HA Controls
-dashboard (theme "Liquid Glass Tinted"). Brad chose option A: fully adopt the glass look,
+Make the HouseKeeper app look like part of the same family as the HA Controls
+dashboard (theme "Liquid Glass Tinted"). The owner chose option A: fully adopt the glass look,
 including Apple-style system typography, rather than keeping the workshop/condensed type.
 
 ## Goals
@@ -48,7 +48,7 @@ then update the add-on in HA (Supervisor rebuild).
 Exact spacing tweaks, hover/transition details, local preview method.
 
 ## Addendum (2026-11-17): theme picker
-Brad asked to choose the theme from the tracker's Settings. Decisions (his): **household-wide**, options
+The owner asked to choose the theme from the tracker's Settings. Decisions (owner's): **household-wide**, options
 **Liquid Glass + Classic** (today's look, unchanged), each with **Auto / Light / Dark** mode.
 - Stored in the tracker DB at doc `meta/appearance` = `{theme: "glass"|"classic", mode: "auto"|"light"|"dark"}`;
   default glass/auto. Included in backups; live-updates other devices via the existing change poll.
