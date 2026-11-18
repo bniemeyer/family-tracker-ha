@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Niemeyer Family Tracker</title>
+<title>Housekeeper</title>
 <script>/* apply the last-seen appearance before first paint; the shared setting in meta/appearance wins once loaded */
 (function(){var a=null;try{a=JSON.parse(localStorage.getItem("ft-appearance")||"null")}catch(e){}
 var r=document.documentElement;r.dataset.theme=a&&a.theme==="classic"?"classic":"glass";r.dataset.mode=a&&(a.mode==="light"||a.mode==="dark")?a.mode:"auto"})();</script>
@@ -124,6 +124,7 @@ details.gone .grid{margin-top:12px}
 .loading{padding:40px;text-align:center;color:var(--ink2)}
 /* tracker shell */
 .brand{display:flex;flex-direction:column;gap:10px}
+.tagline{margin-top:-8px;font-size:13px;color:var(--ink2);letter-spacing:.02em}
 .nav{display:flex;gap:4px;flex-wrap:wrap}
 .nav a{padding:6px 13px;border-radius:999px;text-decoration:none;color:var(--ink2);font-weight:600;font-size:14px;border:1px solid transparent}
 .nav a:hover{border-color:var(--line);color:var(--ink)}
@@ -544,7 +545,7 @@ function topHTML(on){
   const due=allDue();
   const cnt=sec=>{const l=due.filter(i=>i.sec===sec); if(!l.length) return ""; return `<span class="cnt ${l.some(i=>i.s.key==="bad")?"":"soon"}">${l.length}</span>`};
   const tab=(h,label,key,extra="")=>`<a href="#${h}" class="${on===key?"on":""}">${label}${extra}</a>`;
-  return `<div class="top"><div class="brand"><h1>Niemeyer Family <span>Tracker</span></h1>
+  return `<div class="top"><div class="brand"><h1>House<span>keeper</span></h1><div class="tagline">Maintenance for home, garage &amp; gear</div>
     <nav class="nav">${tab("","Overview","overview")}${tab("garage","Garage","garage",cnt("Garage"))}${tab("home","Home","home",cnt("Home"))}${tab("seasonal","Seasonal","seasonal",cnt("Seasonal"))}</nav></div>${syncHTML()}</div>
   ${staleNote?`<div class="banner">Can't reach the tracker database right now. What you see may be out of date.</div>`:""}`;
 }
@@ -1152,7 +1153,7 @@ function renderSettings(){
       <div class="k">HA notification</div><div class="v">${o.persistent_notification?"On":"Off"}</div>
       <div class="k">Last check</div><div class="v">${t(ha.last_reminder)}<div class="note">${esc(ha.last_reminder_result||"")}</div></div>
     </div>
-    <p class="hint" style="margin-top:10px">Change these on the app's Configuration tab in Settings → Apps → Niemeyer Family Tracker.</p>
+    <p class="hint" style="margin-top:10px">Change these on the app's Configuration tab in Settings → Apps → Housekeeper.</p>
     <div class="editbar"><button class="btn small primary" data-act="remindnow">Send reminder now</button></div></div>
   </div>
   <div class="panels">

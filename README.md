@@ -1,4 +1,6 @@
-# Niemeyer Family Tracker for Home Assistant
+# Housekeeper for Home Assistant
+
+*Maintenance for home, garage & gear.*
 
 [![Add repository](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fbniemeyer%2Ffamily-tracker-ha)
 
@@ -44,9 +46,9 @@ Everything runs locally on your Home Assistant box. There's no cloud account and
    https://github.com/bniemeyer/family-tracker-ha
    ```
    You can also click the **Add repository** badge at the top of this page.
-3. Find **Niemeyer Family Tracker** in the list → **Install**.
+3. Find **Housekeeper** in the list → **Install**.
 4. On the **Info** tab, turn on **Start on boot** and **Show in sidebar**, then click **Start**.
-5. Open **Family Tracker** from the sidebar.
+5. Open **Housekeeper** from the sidebar.
 
 ## Getting started
 
@@ -104,7 +106,7 @@ How some of it works:
 
 ## Configuration
 
-The app's settings are on its **Configuration** tab (**Settings → Apps → Niemeyer Family Tracker → Configuration**):
+The app's settings are on its **Configuration** tab (**Settings → Apps → Housekeeper → Configuration**):
 
 | Option | Default | Description |
 |---|---|---|
@@ -135,7 +137,7 @@ Example dashboard card:
 
 ```yaml
 type: entities
-title: Family Tracker
+title: Housekeeper
 entities:
   - sensor.family_tracker_overdue
   - sensor.family_tracker_due_soon
@@ -165,7 +167,7 @@ Example: flash a light when anything is overdue.
 
 ```yaml
 automation:
-  - alias: Family Tracker – overdue light
+  - alias: Housekeeper – overdue light
     triggers:
       - trigger: numeric_state
         entity_id: sensor.family_tracker_overdue
@@ -182,14 +184,14 @@ Example: send the reminder to a second phone.
 
 ```yaml
 automation:
-  - alias: Family Tracker – forward reminder
+  - alias: Housekeeper – forward reminder
     triggers:
       - trigger: event
         event_type: family_tracker_reminder
     actions:
       - action: notify.mobile_app_amys_phone
         data:
-          title: "Family Tracker: {{ trigger.event.data.count }} due"
+          title: "Housekeeper: {{ trigger.event.data.count }} due"
           message: "{{ trigger.event.data['items'] | join('\n') }}"
 ```
 
@@ -255,7 +257,7 @@ When a new version is pushed here, Home Assistant shows an update for the app. T
 | Sensors show *unknown* | Normal right after HA restarts. Wait up to 5 minutes or press **Update sensors now**. |
 | No phone push | Check that **Notify service** has no `notify.` prefix and matches **Developer tools → Actions**. Use **Send reminder now** and check **Last check** in Settings for the error. |
 | No reminder arrived | Reminders are only sent when something is new or due to repeat. **Last check** in Settings shows what happened. |
-| Import fails: *"That isn't a Family Tracker backup file"* | The file needs `"format": "family-tracker-backup"` and a `docs` object at the top level. |
+| Import fails: *"That isn't a Housekeeper backup file"* | The file needs `"format": "family-tracker-backup"` and a `docs` object at the top level. |
 | Calendar doesn't load | Use the exact URL from Settings, including the app hostname and port 8100, not `localhost`. |
 | Blank page in the sidebar | Hard-refresh the browser (Ctrl/Cmd+Shift+R). Then check the app's **Log** tab. |
 

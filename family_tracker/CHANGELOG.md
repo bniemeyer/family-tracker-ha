@@ -1,3 +1,7 @@
+## 1.4.0
+- Renamed to **Housekeeper**, "Maintenance for home, garage & gear" (app name, sidebar panel, header with tagline, sensor friendly names, notifications, calendar name, docs).
+- No migration needed: the app slug (`family_tracker`), your data, `sensor.family_tracker_*` entity IDs, the `family_tracker_reminder` event and the backup file format are unchanged.
+
 ## 1.3.2
 - Quick-buy: parts with a link show a 🛒 Buy button in the Garage and Home parts lists and on each vehicle's parts panel; appliance cards show 🛒 part links.
 
