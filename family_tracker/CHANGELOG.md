@@ -1,3 +1,8 @@
+## 1.5.2
+- Add supplies and tools straight from a task: **🧰+** on each task row opens the item form with the task preselected.
+- The task editor lists its supplies & tools, can link an existing project item, unlink items, and add a new one.
+- Task 🧰 chip shows how many items are still to buy.
+
 ## 1.5.1
 - Header shows the app version in small print next to the name.
 

@@ -1409,12 +1409,12 @@ function projTaskHTML(p,h,t){
   return `<div class="tk ${t.done?"done":""}">
     <input type="checkbox" data-pact="ttask" ${A} ${t.done?"checked":""} ${canWrite?"":"disabled"}>
     <div class="tx"><span class="tt" data-pact="edittask" ${A}>${esc(t.text)}</span>
-      <div class="tk-meta">${ds?`<span class="badge ${ds.key}">${ds.key==="ok"?esc(ds.short):esc(ds.rel)}</span>`:isDate(t.due)?`<span class="badge na">${esc(fmt(t.due))}</span>`:""}${t.assignee?`<span class="chip">👤 ${esc(t.assignee)}</span>`:""}${subs.length?`<span class="chip">${sd}/${subs.length}</span>`:""}${(t.estCost!==""&&t.estCost!=null)||(t.actCost!==""&&t.actCost!=null)?`<span class="chip">${money(t.actCost)||"—"} / ${money(t.estCost)||"—"}</span>`:""}${mats.length?`<span class="chip">🧰 ${mats.length}</span>`:""}${t.url?`<a class="chip" href="${esc(t.url)}" target="_blank" rel="noopener">↗ link</a>`:""}</div>
+      <div class="tk-meta">${ds?`<span class="badge ${ds.key}">${ds.key==="ok"?esc(ds.short):esc(ds.rel)}</span>`:isDate(t.due)?`<span class="badge na">${esc(fmt(t.due))}</span>`:""}${t.assignee?`<span class="chip">👤 ${esc(t.assignee)}</span>`:""}${subs.length?`<span class="chip">${sd}/${subs.length}</span>`:""}${(t.estCost!==""&&t.estCost!=null)||(t.actCost!==""&&t.actCost!=null)?`<span class="chip">${money(t.actCost)||"—"} / ${money(t.estCost)||"—"}</span>`:""}${mats.length?`<span class="chip" style="cursor:pointer" data-pact="edittask" ${A} title="${esc(mats.map(m=>(matHave(m)?"✓ ":"• ")+m.name).join("\n"))}">🧰 ${mats.filter(m=>!matHave(m)).length?`${mats.filter(m=>!matHave(m)).length} to buy`:mats.length}</span>`:""}${t.url?`<a class="chip" href="${esc(t.url)}" target="_blank" rel="noopener">↗ link</a>`:""}</div>
       ${t.notes?`<div class="hint">${esc(t.notes)}</div>`:""}
       ${subs.length?`<div class="subs">${subs.map(s=>`<div class="tk stk ${s.done?"done":""}"><input type="checkbox" data-pact="tsub" ${A} data-s="${esc(s.id)}" ${s.done?"checked":""} ${canWrite?"":"disabled"}><span class="tx">${esc(s.text)}</span>${canWrite?`<button class="btn small ghost" data-pact="delsub" ${A} data-s="${esc(s.id)}" title="Delete subtask">×</button>`:""}</div>`).join("")}</div>`:""}
       ${canWrite?`<form class="addline" data-pform="sub" ${A}><input name="text" placeholder="+ subtask" autocomplete="off"></form>`:""}
     </div>
-    ${canWrite?`<div class="tk-act"><button class="btn small ghost" data-pact="tup" ${A} title="Move up">↑</button><button class="btn small ghost" data-pact="tdown" ${A} title="Move down">↓</button></div>`:""}
+    ${canWrite?`<div class="tk-act"><button class="btn small ghost" data-pact="addmat" ${A} title="Add a supply or tool for this task">🧰+</button><button class="btn small ghost" data-pact="tup" ${A} title="Move up">↑</button><button class="btn small ghost" data-pact="tdown" ${A} title="Move down">↓</button></div>`:""}
   </div>`;
 }
 function headingHTML(p,h){
@@ -1492,17 +1492,23 @@ function taskDialog(p,h,t){
     <label>Actual cost ($)<input name="actCost" inputmode="decimal" value="${typeof t.actCost==="number"?t.actCost:""}"></label>
     <label class="full">Link<input name="url" value="${esc(t.url||"")}" placeholder="https://… (how-to, product page)"></label>
     <label class="full">Notes<textarea name="notes" rows="3">${esc(t.notes||"")}</textarea></label>
+    <div class="full"><div class="note" style="margin-bottom:4px">Supplies &amp; tools for this task</div>
+      ${(()=>{const mine=(p.materials||[]).filter(m=>m.taskId===t.id); const others=(p.materials||[]).filter(m=>m.taskId!==t.id);
+        return `<div class="chips">${mine.map(m=>`<span class="chip">${matHave(m)?"✓":"•"} ${esc(m.name)}${typeof m.qty==="number"?` ×${m.qty}`:""} <button class="btn small ghost" style="padding:0 4px" type="button" data-pact="unlinkmat" data-m="${esc(m.id)}" data-h="${esc(h.id)}" data-t="${esc(t.id)}" title="Unlink from this task">×</button></span>`).join("")||'<span class="hint">None yet.</span>'}</div>
+        <div class="toolbar" style="margin:8px 0 0">${others.length?`<select name="linkmat" style="flex:1"><option value="">Link an existing project item…</option>${others.map(m=>`<option value="${esc(m.id)}">${esc(m.name)}${m.taskId?` (now: ${esc(taskLabel(p,m.taskId))})`:""}</option>`).join("")}</select>`:""}<button class="btn small" type="button" data-pact="addmat" data-h="${esc(h.id)}" data-t="${esc(t.id)}">+ Supply/tool</button></div>`})()}
+    </div>
     ${people.length?"":`<p class="hint full">Add names under ⚙ Settings → People to assign tasks.</p>`}
     <div class="full editbar"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" data-close>Cancel</button><span style="flex:1"></span><button class="btn danger" type="button" data-pact="deltask" data-h="${esc(h.id)}" data-t="${esc(t.id)}">Delete task</button></div></form>`,
   async f=>{
     const g=k=>String(f.get(k)||"").trim(); const n=k=>{const v=parseNum(g(k));return typeof v==="number"?v:""}; const url=g("url");
     Object.assign(t,{text:g("text")||t.text,due:parseDateInput(g("due")),assignee:g("assignee"),estCost:n("estCost"),actCost:n("actCost"),url:/^https?:\/\//i.test(url)?url:"",notes:g("notes")});
+    const lm=g("linkmat"); if(lm){ const mm=(p.materials||[]).find(x=>x.id===lm); if(mm) mm.taskId=t.id }
     const nh=g("hid"); if(nh&&nh!==h.id){ const dest=findH(p,nh); if(dest){ h.tasks=h.tasks.filter(x=>x.id!==t.id); dest.tasks=[...(dest.tasks||[]),t] } }
     await saveProj(p);
   });
 }
-function matDialog(p,m){
-  const isNew=!m; m=m||{kind:"Supply",status:"need",unit:"ea"};
+function matDialog(p,m,presetTask){
+  const isNew=!m; m=m||{kind:"Supply",status:"need",unit:"ea",taskId:presetTask||""};
   const tasks=allTasks(p); const plist=[...parts].sort((a,b)=>String(a.name).localeCompare(String(b.name)));
   modal(`<h2>${isNew?"Add supply or tool":"Edit "+esc(m.name)}</h2><form class="form" style="background:none;padding:0">
     <label class="full">Item<input name="name" value="${esc(m.name||"")}" placeholder="e.g. Thinset 50 lb, tile saw" required></label>
@@ -1551,6 +1557,8 @@ document.addEventListener("click",e=>{
   if(act==="tup"||act==="tdown"){ const h=findH(p,d.h); moveIn(h.tasks,h.tasks.findIndex(t=>t.id===d.t),act==="tup"?-1:1); return saveProj(p) }
   if(act==="delsub"){ const t=findT(p,d.h,d.t); t.subtasks=(t.subtasks||[]).filter(s=>s.id!==d.s); if(t.subtasks.length) t.done=t.subtasks.every(s=>s.done); return saveProj(p) }
   if(act==="newmat") return matDialog(p);
+  if(act==="addmat"){ document.querySelector(".modal")?.remove(); return matDialog(p,null,d.t) }
+  if(act==="unlinkmat"){ const m=(p.materials||[]).find(x=>x.id===d.m); if(m){ m.taskId=""; a.closest(".chip")?.remove(); saveProj(p) } return }
   if(act==="editmat"){ const m=(p.materials||[]).find(x=>x.id===d.m); if(m) matDialog(p,m); return }
   if(act==="delmat"){ document.querySelector(".modal")?.remove(); confirmDelete("this item",async()=>{ p.materials=p.materials.filter(x=>x.id!==d.m); await saveProj(p) }); return }
   if(act==="tmat"){ const m=p.materials.find(x=>x.id===d.m); if(!matHave(m)) return markBought(p,m); m.status="need"; return saveProj(p) }

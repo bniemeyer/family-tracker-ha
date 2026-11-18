@@ -1,5 +1,5 @@
 name: HouseKeeper
-version: "1.5.1"
+version: "1.5.2"
 slug: family_tracker
 description: "HouseKeeper: maintenance for home, garage & gear. Vehicles, parts, appliances, home tasks and seasonal checklists with reminders"
 url: https://github.com/bniemeyer/housekeeper-ha
