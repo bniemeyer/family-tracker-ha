@@ -33,6 +33,10 @@ Everything runs locally on your Home Assistant box. There's no cloud account and
 ---
 
 
+## Who can open it
+
+HouseKeeper shows in the sidebar for **all** Home Assistant users, not just administrators, so the whole household can use it. To limit it to admins, fork the repository and set `panel_admin: true` in `family_tracker/config.yaml`.
+
 ## Projects
 
 Plan household projects as **Project → Heading → Task → Subtask** (for example *Basement bathroom → Plumbing → Rough-in drain → Check slope*).

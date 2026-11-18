@@ -1,3 +1,6 @@
+## 1.5.3
+- Non-admin Home Assistant users can now open HouseKeeper from the sidebar (`panel_admin: false`). Everyone in the household can view and update projects, tasks and lists.
+
 ## 1.5.2
 - Add supplies and tools straight from a task: **🧰+** on each task row opens the item form with the task preselected.
 - The task editor lists its supplies & tools, can link an existing project item, unlink items, and add a new one.

@@ -1,5 +1,5 @@
 name: HouseKeeper
-version: "1.5.2"
+version: "1.5.3"
 slug: family_tracker
 description: "HouseKeeper: maintenance for home, garage & gear. Vehicles, parts, appliances, home tasks and seasonal checklists with reminders"
 url: https://github.com/bniemeyer/housekeeper-ha
@@ -13,6 +13,7 @@ ingress: true
 ingress_port: 8099
 panel_icon: mdi:home-clock
 panel_title: HouseKeeper
+panel_admin: false
 homeassistant_api: true
 backup: hot
 options:
